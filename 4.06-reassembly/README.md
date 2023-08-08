@@ -2,7 +2,7 @@ This directory contains the disassembled and edited source of
 Acornsoft Lisp 4.06 along with tools for building it.
 
 The original disassembly and merging of comments from the printed
-listing was done by TonyLobster:
+listing was done by TobyLobster:
   https://github.com/TobyLobster/lisp/tree/main/source
 
 I have edited the code to bring it closer to the original, separated
