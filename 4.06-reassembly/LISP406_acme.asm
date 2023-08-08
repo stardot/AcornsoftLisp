@@ -2014,7 +2014,7 @@ WRIT
     lda #<WRITGO+2
     sta (POINT),y
 WRITGO
-    jmp WRTTZ
+    jmp WRITZ
 
     lda #$0d
     jsr OUT
@@ -2022,7 +2022,7 @@ WRITGO
 
 
     ; **** WRITE0
-WRTTZ
+WRITZ
     jsr FILG
     lda #$ff
     sta ESCHF
@@ -5778,7 +5778,7 @@ ANDV
     jmp _AND
 ORV
     jmp OR
-ERRORLV
+ERORLV
     jmp ERRORL
 NUMPV
     jmp NUMP
@@ -5812,7 +5812,7 @@ SUBAV
     jmp SUBA
 ADDAV
     jmp ADDA
-RECLAMV
+RECLMV
     jmp RECLAM
 RPLACAV
     jmp RPLACA
@@ -5820,7 +5820,7 @@ RPLACDV
     jmp RPLACD
 CHARSV
     jmp CHARS
-MESSONV
+MESSNV
     jmp MESSON
 GETV
     jmp GET
@@ -5830,7 +5830,7 @@ REMPRV
     jmp REMPR
 GTV
     jmp GT
-GPLISTV
+GPLSTV
     jmp GPLIST
 CHARPV
     jmp CHARP
@@ -5840,11 +5840,11 @@ ASSOCV
     jmp ASSOC
 UNTILV
     jmp UNTIL
-FSUBRPV
+FSBRPV
     jmp FSUBRP
 ERCNV
     jmp ERCN
-ERRSETV
+ERSETV
     jmp ERRSET
 CALLV
     jmp CALL
@@ -5852,43 +5852,43 @@ PEEKV
     jmp PEEK
 POKEV
     jmp POKE
-OBLISTV
+OBLSTV
     jmp OBLIST
 APPLYV
     jmp APPLY
-MAPCARV
+MAPCRV
     jmp MAPCAR
 MAPV
     jmp MAP
 ASCIIV
     jmp ASCII
-ORDINLV
+ORDNLV
     jmp ORDINL
-EXPLODV
+EXPLDV
     jmp EXPLOD
-IMPLODV
+IMPLDV
     jmp IMPLOD
-GETCHAV
+GETCHV
     jmp GETCHA
 STARV
     jmp STAR
-MESSOFV
+MESSFV
     jmp MESSOF
-IPLINEV
+IPLNEV
     jmp IPLINE
 CLOSV
     jmp CLOS
 OPEV
     jmp OPE
-WRTTZV
-    jmp WRTTZ
+WRITZV
+    jmp WRITZ
 WRITV
     jmp WRIT
 EOFV
     jmp EOF
 VDUV
     jmp VDU
-PRINTCV
+PRNTCV
     jmp PRINTC
 PRINCV
     jmp PRINC
@@ -5908,7 +5908,7 @@ RESETV
     jmp RESET
 CLOCKV
     jmp CLOCK
-PVALV
+POINTV
     jmp PVAL
 ADVALV
     jmp ADVAL
@@ -5920,7 +5920,7 @@ BORV
     jmp BOR
 INKEYV
     jmp INKEY
-GENSYMV
+GNSYMV
     jmp GENSYM
 
 unused2
