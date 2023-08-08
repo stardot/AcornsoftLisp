@@ -33,7 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-uint16_t UNDEFINED, IMBOT, AREVAL, IMLEN;
+uint16_t UNDEFINED, IMBOT, AREVAL, IMLEN, VECTAB;
 #define MIN_IMAGE_SIZE 15	/* must be room for UNDEFINED */
 
 enum type {CHARF=0x00, NUMF=0x04, SUBRF=0x08, FSUBRF=0x0c, LISTF=0x80};
@@ -46,6 +46,7 @@ char *label[65536] = {0};
 void read_image(int image_off);
 void relocate_image(uint16_t reloc_addr);
 void assign_labels(void);
+void assign_vectors();
 void print_image(uint16_t asm_addr);
 
 void print_objects(uint16_t shift);
@@ -84,6 +85,7 @@ int main(int argc, char **argv)
 	relocate_image(reloc_addr);
 
     assign_labels();
+    assign_vectors();
 
     print_image(asm_addr);
 }
@@ -120,12 +122,13 @@ void read_image(int image_off)
     }
 
     /* image started 2 bytes before UNDEFINED's address (which is its
-       own value) and end at the address at the start of the image */
+       own value) and ended at the address at the start of the image */
 
     UNDEFINED = rom[image_off + 4] + (rom[image_off + 5] << 8);
     IMBOT = UNDEFINED - 2;
     AREVAL = rom[image_off] + (rom[image_off + 1] << 8);
     IMLEN = AREVAL - IMBOT;
+    VECTAB = IMBOT - 0x200;
 
     if(image_off + IMLEN > nread)
     {
@@ -133,7 +136,8 @@ void read_image(int image_off)
 	exit(1);
     }
 
-    fprintf(stderr, "image had IMBOT=%04x, length=0x%x\n", IMBOT, IMLEN);
+    fprintf(stderr, "image had IMBOT=%04x, length=0x%x, VECTAB=%04x\n",
+	    IMBOT, IMLEN, VECTAB);
 
     /* install the image in memory */
 
@@ -183,6 +187,11 @@ void relocate_image(uint16_t reloc_addr)
     UNDEFINED = UNDEFINED + shift;
     IMBOT = IMBOT + shift;
     AREVAL = AREVAL + shift;
+    VECTAB = IMBOT - 0x200;
+    
+    fprintf(stderr, "relocaed to IMBOT=%04x, length=0x%x, VECTAB=%04x\n",
+	    IMBOT, IMLEN, VECTAB);
+
 }
 
 /* assign labels to memory locations: s_XXX for a symbol called XXX,
@@ -411,3 +420,32 @@ uint16_t next_object(uint16_t obj)
 {
     return obj + object_size(obj);
 }
+
+#define NVECTORS 104
+char *vecname[NVECTORS] =
+{
+    "NULLV", "PRINTV", "CONSV", "EVALV", "CARV", "EQV", "SETQV", "SETV",
+    "ATOMV", "READXV", "CDRV", "PRINZV", "CONDV", "QUOV", "PROGNV", "LOOPV",
+    "WHILEV", "LISTV", "CAARV", "CADRV", "CDARV", "CDDRV", "CAAARV", "CAADRV",
+    "CADARV", "CADDRV", "CDAARV", "CDADRV", "CDDARV", "CDDDRV", "ANDV", "ORV",
+    "ERORLV", "NUMPV", "ZEROPV", "ONEPV", "MINUSPV", "DUMPV", "LOADV", "PLUSV",
+    "DIFFV", "MINUSV", "SUBRPV", "TIMESV", "QUOTV", "REMV", "LESSPV", "SUBAV",
+    "ADDAV", "RECLMV", "RPLACAV", "RPLACDV", "CHARSV", "MESSNV", "GETV", "PUTV",
+    "REMPRV", "GTV", "GPLSTV", "CHARPV", "LISTPV", "ASSOCV", "UNTILV", "FSBRPV",
+    "ERCNV", "ERSETV", "CALLV", "PEEKV", "POKEV", "OBLSTV", "APPLYV", "MAPCRV",
+    "MAPV", "ASCIIV", "ORDNLV", "EXPLDV", "IMPLDV", "GETCHV", "STARV", "MESSFV",
+    "IPLNEV", "CLOSV", "OPEV", "WRITZV", "WRITV", "EOFV", "VDUV", "PRNTCV",
+    "PRINCV", "MODEV", "USRV", "SOUNDV", "ENVV", "GCTIMV", "TIMEV", "RESETV",
+    "CLOCKV", "POINTV", "ADVALV", "BNOTV", "BANDV", "BORV", "INKEYV", "GNSYMV"
+};
+
+/* Assign labels for the vectors to which [f]subrs jump */
+
+void assign_vectors()
+{
+    int i;
+
+    for(i=0; i<NVECTORS; i++)
+	label[VECTAB + i*3] = vecname[i];
+}
+
