@@ -1,4 +1,4 @@
-This directory contains the disassmebled and edited source of
+This directory contains the disassembled and edited source of
 Acornsoft Lisp 4.06 along with tools for building it.
 
 The original disassembly and merging of comments from the printed
