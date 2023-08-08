@@ -119,7 +119,7 @@ void read_image(int image_off)
 	exit(1);
     }
 
-    /* image started 2 bytes before UNDEFINED's address (which is it's
+    /* image started 2 bytes before UNDEFINED's address (which is its
        own value) and end at the address at the start of the image */
 
     UNDEFINED = rom[image_off + 4] + (rom[image_off + 5] << 8);
