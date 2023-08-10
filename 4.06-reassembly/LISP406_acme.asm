@@ -6072,7 +6072,7 @@ MOVE_OFFSET = HILISP-LISVAL
     !src "reltab.asm"
 
 unused4
-    !byte   0,   0,   0,   0,   0,   0,   0,   0
+    !byte             0,   0,   0,   0,   0,   0
     !byte   0,   0,   0,   0,   0,   0,   0,   0
     !byte   0,   0,   0,   0,   0,   0,   0,   0
     !byte   0,   0,   0,   0,   0,   0,   0,   0

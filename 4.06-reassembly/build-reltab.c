@@ -26,4 +26,6 @@ int main(void)
 	    printf("  !word MOVE_OFFSET + $%04x\n", addr);
 	addr++;
     }
+
+    printf("    !word 0\n");
 }
