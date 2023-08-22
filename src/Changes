@@ -1,0 +1,41 @@
+Changes in version 4.07
+
+Changed version message to "4.07"
+
+Bugs in zerop, onep, minusp:
+ These functions tested ARG instead of ARGA.  The error didn't usually
+ show up because normally ARG contain the same value, but if called
+ via APPLY they would give random results.
+
+Bug in garbage collector (1):
+ If a GC occurred while a number was being allocated, the value of
+ ACL would be corrupted, often resulting in the wrong value being stored
+ in the number.  (The GC uses ACL for its messages.)  Fixed by pushing
+ and popping ACL at the start and end of GC.
+
+Bug in garbage collector (2):
+ If a GC occurred during a call to BIND, the symbol being bound might
+ move and the pointer to it in WSD would not be updated (the GC
+ doesn't consider WSD).  It's likely a similar problem applied to the
+ value being bound, as it was stored in the ARG array beyond TVSEXT,
+ though I was not able to contruct a case where it happened.  Fixed by
+ (a) adding a RESERV function to ensure enough space is available
+ before using WSD so that a GC won't occur, and (b) updating TVSEXT as
+ each value is added.  A better fix for (a) might be to make the GC
+ handle WSD, but I don't understand it well enough to do that at
+ present.
+
+Defun didn't work to define a function called "X":
+ The defun fexpr uses X as its variable, capturing uses of it in the
+ defun.  This is an inherent problem with using fexprs for this sort of
+ thing.  Mitigated by changing the variable name to "X_".
+
+Bug in ASSOC:
+ (assoc 'a nil) gave an error instead of returning nil.  The function
+ SOCKA tests the Z flag expecting it to reflect whether the list is
+ empty, but instead it depended on whether the key was nil (which
+ also meant that (assoc nil ...) always returned nil).
+
+Wrong error number for "function expected":
+ There were two errors number 6 and no error number 5.  "Function expected"
+ changed 5 (cf Norman/Cattell book)
