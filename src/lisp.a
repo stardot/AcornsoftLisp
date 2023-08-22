@@ -14,6 +14,8 @@
     ;; comments merged from listing June 2023 TobyLobster
     ;; Further restored August 2023 RMT
 	
+    ;; Version 4.07 start 10/08/23 RMT
+
     ;; *******************************
 
     !src "lisp00.a"

@@ -1,8 +1,15 @@
-ROM=	LISP406
+ROM=	LISP407
+ROMlc=	LISP407lc
+
 CFLAGS=	-Wall -g -O3
+
+all:	$(ROM) $(ROMlc)
 
 $(ROM):	tlisp IMAGE reltab.bin combine
 	./combine -i a600 -r b800 tlisp IMAGE reltab.bin >$(ROM)
+
+$(ROMlc):	$(ROM) convert-to-lc
+	./convert-to-lc <$(ROM) >$(ROMlc)
 
 tlisp:	lisp*.a
 	acme -DLISVAL='$$8000' -r tlisp.rep -o tlisp lisp.a
@@ -24,8 +31,10 @@ reltab.asm:	tlisp tlisphigh build-reltab
 	./build-reltab -a -e a400 -h d700 tlisp tlisphigh >reltab.asm
 
 build-reltab:	build-reltab.o
+
 combine:	combine.o
 
-clean:
-	rm *.o build-reltab combine tlisp* IMAGE reltab.bin $(ROM)
+convert-to-lc:	convert-to-lc.o
 
+clean:
+	rm *.o build-reltab combine convert-to-lc tlisp* IMAGE reltab.bin $(ROM) $(ROMlc)

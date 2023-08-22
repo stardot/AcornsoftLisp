@@ -15,7 +15,7 @@ TITLE
     !text "LISP"
     !byte 0
 VERSN
-    !text "4.06"
+    !text "4.07"
 CPYOFF
     !byte 0
     !text "(C)1983 Acornsoft/1979 Owl Computers"
