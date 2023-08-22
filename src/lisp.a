@@ -18,7 +18,8 @@
     ;; Bugs in ZEROP/ONEP/MINUS fixed 10/8/23
     ;; Bug in GC during ALNUM fixed 10/8/23
     ;; Bug in GC during BIND fixed 14/8/23
-
+    ;; Bug in (ASSOC 'A NIL) fixed 19/8/23
+    
     ;; *******************************
 
     !src "lisp00.a"

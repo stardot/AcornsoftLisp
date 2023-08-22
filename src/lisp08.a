@@ -369,6 +369,7 @@ ASSOC
     sta ARGB
     lda ARGA+1
     sta ARGB+1
+    lda WSB+1					   ; so Z flag is right for SOCKA
     jsr SOCKA
     cmp #1                                         ; Save ret code as carry
     pla
