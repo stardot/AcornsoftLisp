@@ -31,7 +31,7 @@ ARGTXT
 WRMTXT
     !text $0d, "Warm or cold start (W/C) ?", $80+' '
 HLPTXT
-    !text $0d, "LISP 4.06", $80+$0d
+    !text $0d, "LISP 4.07", $80+$0d
 
 				; Set up message offsets
 	
