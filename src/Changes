@@ -39,3 +39,14 @@ Bug in ASSOC:
 Wrong error number for "function expected":
  There were two errors number 6 and no error number 5.  "Function expected"
  changed 5 (cf Norman/Cattell book)
+
+Size of code
+ The code is relocated to D700 in the tube, and must therefore be no
+ more than 2100 bytes long, or it will run into the tube OS at F800.
+ Added a warning in the assembler to check it hasn't reached that
+ limit. (If it does, we will have to lower the address it runs at.)
+ 
+Bug in BAND/BOR with no arguments
+ Due to a test at the wrong end of the loop, BAND and BOR with no
+ arguments and-ed or or-ed together all the words in zero page,
+ usually resulting in 0 and -1 instead of -1 and 0 respectively.
