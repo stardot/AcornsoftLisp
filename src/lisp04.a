@@ -80,7 +80,7 @@ EVLIST
 FUNERR
     brk                                            ; Can't make function
 
-    !byte 6
+    !byte 5					   ; corrected (was 6)
     !text "Function expected"
     !byte 0
 
