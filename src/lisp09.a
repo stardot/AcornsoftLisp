@@ -1,0 +1,541 @@
+    ; Filename: LISP09 - Version 2/4 functions
+    
+    ; ******************************
+    ; New routines for version 2
+    ; ******************************
+
+				; **** MODE
+MODE
+    jsr ALLNUM
+    jsr ALNUM
+    ldy #2
+    lda (ARGA),y                                   ; Get mode
+    and #7                                         ; Mod 8
+    sta (POINT),y
+    ora #$80                                       ; Flag bit
+    sta MODEF
+    iny
+    lda #0
+    sta (POINT),y
+    jmp AMADE
+
+
+    ; **** Actually change mode
+MODCHN
+    lda MODEF
+    and #7
+    sta MODEF                                      ; Clear flag bit
+    pha
+    lda #osbyte_read_high_order_address
+    jsr OSBYTE                                     ; M/c HO addr.; Read the filing system 'machine high order address'
+    cpy #$ff
+    bne CHANGE                                     ; In 2nd processor?
+    pla
+    pha
+    tax                                            ; X=MODE number
+    lda #osbyte_read_himem_for_mode
+    jsr OSBYTE                                     ; Get new aretop; Read top of user memory for a given screen mode X
+    cpy AREVAL+1                                   ; Room for OBLIST?
+    bcc MODERR
+    bne CHARE
+    cpx AREVAL
+    bcs CHARE
+MODERR
+    brk                                            ; No room
+
+    !byte $1b
+    !text "No room for MODE "
+    !byte 0
+
+CHARE
+    sty ARETOP                                     ; New ARETOP
+    sty SP+1                                       ; Reset software stack
+CHANGE
+    lda #$16                                       ; Change mode
+    jsr OSWRCH                                     ; Write character 22
+    pla
+    jmp OSWRCH                                     ; Write character
+
+
+    ; **** USR
+USR
+    jsr ALLNUM
+    ldy #3
+    lda (ARGA),y
+    sta POINT+1                                    ; Call addr
+    dey
+    lda (ARGA),y
+    sta POINT
+    lda (ARGE),y                                   ; Get carry
+    cmp #1                                         ; And adjust flag
+    php
+    lda (ARGB),y                                   ; Get A
+    pha
+    lda (ARGC),y                                   ; Get X
+    tax
+    lda (ARGD),y                                   ; Get Y
+    tay
+    pla
+    plp
+    jsr JUMPAD
+    jmp OUTL
+
+JUMPAD
+    jmp (POINT)                                    ; Enter routine
+
+OUTL
+    php                                            ; Build up result list
+    sta WSA+1
+    pla
+    sta WSA                                        ; Save status
+    lda WSA+1                                      ; Restore A
+    pha
+    txa
+    pha
+    tya
+    pha
+    lda #0
+    sta WSA+1                                      ; NIL
+    lda WSA                                        ; Get status
+    jsr BUILD1                                     ; status
+    pla
+    jsr BUILD1                                     ; Y
+    pla
+    jsr BUILD1                                     ; X
+    pla
+    jsr BUILD1                                     ; A
+    jmp AMADE                                      ; Return list
+
+
+    ; **** Put A on list in WSA
+BUILD1
+    ldx #0
+
+    ; **** Put A & X (msb) on WSA
+BUILD2
+    jsr SETNUM                                     ; WSB has val
+    jsr ALPAIR
+    ldy #1
+    lda WSB
+    sta (POINT),y
+    iny
+    lda WSB+1
+    sta (POINT),y
+    iny
+    lda WSA
+    sta (POINT),y
+    iny
+    lda WSA+1
+    sta (POINT),y
+    lda POINT
+    sta WSA
+    lda POINT+1
+    sta WSA+1
+    rts
+
+SETNUM
+    pha                                            ; Num atom in WSB
+    txa
+    pha
+    jsr ALNUM
+    pla
+    tax
+    pla
+    ldy #2
+    sta (POINT),y
+    txa
+    iny
+    sta (POINT),y
+    lda POINT
+    sta WSB
+    lda POINT+1
+    sta WSB+1
+    rts
+
+
+    ; **** SOUND
+SOUND
+    jsr ALLNUM
+    ldy #2
+    ldx #$0a
+MORSOU
+    lda TVS,x
+    sta ARG
+    lda TVS+1,x
+    sta ARG+1
+    lda (ARG),y
+    sta OSWBUF-10,x
+    iny
+    lda (ARG),y
+    sta OSWBUF-9,x
+    dey
+    inx
+    inx
+    cpx #$12
+    bne MORSOU
+    lda #osword_sound
+ENTOSW
+    ldx #<(OSWBUF)
+    ldy #>(OSWBUF)
+    jsr OSWORD                                     ; SOUND command
+    jmp YES
+
+
+    ; **** ENVELOPE
+ENV
+    jsr ALLNUM
+    ldy #2
+    ldx #$0a
+MORENV
+    lda TVS,x
+    sta ARG
+    lda TVS+1,x
+    sta ARG+1
+    txa                                            ; Prepare index
+    lsr
+    tax
+    lda (ARG),y
+    sta OSWBUF-5,x
+    txa
+    asl
+    tax
+    inx
+    inx
+    cpx #$26
+    bne MORENV
+    lda #8
+    bne ENTOSW
+    bne MORENV
+    lda #8
+    bne ENTOSW
+
+    ; **** Get an argument
+GTARG
+    lda TVS+10,x
+    sta WSA
+    inx
+    lda TVS+10,x
+    sta WSA+1
+    inx
+
+    ; ******************************
+    ;  Now the clock handling
+    ; routines
+    ; ******************************
+RESET
+    jsr STCLK
+    jsr GCTIMZ
+    jmp YES                                        ; Value is T
+
+
+    ; **** Zero the clock
+STCLK
+    lda #osword_write_clock                        ; Write clock
+ZERTIM
+    ldy #>(TIMZER)
+    ldx #<(TIMZER)
+    jsr OSWORD                                     ; Write system clock
+    ldx #<(TIMZER)                                 ; Restore pointer
+    ldy #>(TIMZER)
+    rts
+
+
+    ; **** Zero GC time
+GCTIMZ
+    lda #0
+    ldx #4
+MGCTIM
+    sta GCTIME,x
+    dex
+    bpl MGCTIM
+
+    ; **** Read the clock
+TIMER
+    lda #osword_read_clock
+    ldx #<(TIMEW)
+    ldy #>(TIMEW)
+    jsr OSWORD                                     ; Read the clock; Read system clock
+    ldx #<TIMEW                                    ; Restore pointer
+    ldy #>TIMEW
+    rts
+
+
+    ; **** TIME
+TIME
+    jsr TIMER
+    jmp TIMPOP
+
+
+    ; **** GCTIME
+GCTIM
+    ldx #<GCTIME
+    ldy #>GCTIME
+
+    ; **** Return a time
+TIMPOP
+    stx WSC
+    sty WSC+1
+    jsr ALNUM
+    ldy #0
+    lda (WSC),y
+    iny
+    iny
+    sta (POINT),y
+    dey
+    lda (WSC),y
+    iny
+    iny
+    sta (POINT),y
+    jmp AMADE
+
+
+    ; **** CLOCK
+CLOCK
+    jsr TIMER                                      ; Time in TIMEW
+    ldx #5
+    ldy #0
+MCLK1
+    tya
+    sta REM40,x                                    ; Zero remainder
+    sta AUX40,x                                    ; Zero divisor
+    lda TIMEW,x                                    ; Dividend
+    sta ACL40,x
+    dex
+    bpl MCLK1
+    lda #$64                                       ; Throw away cs
+    sta AUX40
+    jsr DIV40
+    lda #0
+    sta REM40
+    lda #$3c                                       ; Get the seconds
+    sta AUX40
+    jsr DIV40
+    lda #0
+    sta WSA+1                                      ; NIL
+    lda REM40
+    jsr BUILD1
+    lda #0
+    sta REM40
+    lda #$3c                                       ; Get the minutes
+    sta AUX40
+    jsr DIV40
+    lda REM40
+    jsr BUILD1
+    lda ACL40                                      ; Get the hours
+    ldx ACL40+1
+    jsr BUILD2
+    jmp AMADE
+
+
+    ; **** POINT
+PVAL
+    jsr ALLNUM
+    ldy #2
+    lda (ARGA),y                                   ; X lsb
+    sta PWORD
+    lda (ARGB),y                                   ; Y msb
+    sta PWORD+2
+    iny
+    lda (ARGA),y                                   ; X lsb
+    sta PWORD+1
+    lda (ARGB),y                                   ; Y msb
+    sta PWORD+3
+    lda #osword_read_pixel
+    ldx #<(PWORD)
+    ldy #>(PWORD)
+    jsr OSWORD                                     ; Read pixel value
+    jsr ALNUM
+    ldy #2
+    ldx #0
+    lda PWORD+4
+    bpl PEXIST                                     ; Point on screen
+    dex
+PEXIST
+    sta (POINT),y
+    iny
+    txa
+    sta (POINT),y
+    jmp AMADE
+
+
+    ; **** ADVAL
+ADVAL
+    jsr ALLNUM
+    jsr ALNUM
+    ldy #2
+    lda (ARGA),y
+    tax
+    iny
+    lda (ARGA),y
+    tay
+    lda #osbyte_read_adc_or_get_buffer_status
+    jsr OSBYTE                                     ; Read buffer status or ADC channel
+    tya
+    clc
+    adc #$80                                       ; Make range +/-2^15
+    ldy #3
+    sta (POINT),y
+    dey
+    txa
+    sta (POINT),y
+    jmp AMADE
+
+
+    ; **** INKEY (added 18/8/83 RMT)
+INKEY
+    jsr ALLNUM
+    ldy #3
+    lda (ARGA),y
+    bmi INKEY2
+    jsr ALNUM
+    ldy #2
+    lda (ARGA),y
+    tax
+    iny
+    lda (ARGA),y
+    tay
+    lda #osbyte_inkey
+    jsr OSBYTE                                     ; Read key within time limit, or read a specific key, or read machine type
+    ldy #2
+    bcs INKER
+    txa
+    sta (POINT),y
+    lda #0
+    iny
+    sta (POINT),y
+    jmp AMADE
+
+INKER
+    lda #$ff
+    sta (POINT),y
+    iny
+    sta (POINT),y
+    jmp AMADE
+
+INKEY2
+    pha                                            ; Scan keyboard
+    dey
+    lda (ARGA),y
+    tax
+    pla
+    tay
+    lda #osbyte_inkey
+    jsr OSBYTE                                     ; Read key within time limit, or read a specific key, or read machine type
+    tya
+    bmi INKYES
+    jmp NO
+
+INKYES
+    jmp YES
+
+
+    ; **** GENSYM (added 31/8/83 RMT)
+GENSYM
+    lda #'G'
+    sta OSWBUF
+    ldx #3
+    sec
+NXDIGT
+    lda GENCNT,x
+    adc #0
+    cmp #$3a
+    bcc NOCAR
+    lda #'0'
+NOCAR
+    sta GENCNT,x
+    sta IMBUF+1,x
+    dex
+    bpl NXDIGT
+    ldy #4
+    sty END
+    jsr MATCH                                      ; Look up Gxxxx
+    ldy #2
+    lda (POINT),y
+    cmp #<s_UNDEFINED                              ; Is it UNDEFINED ?
+    bne GENSYM
+    iny
+    lda (POINT),y
+    cmp ZAVAL
+    bne GENSYM
+    ldy #5
+    lda (POINT),y                                  ; No properties ?
+    bne GENSYM
+    jmp AMADE
+
+
+    ; ******************************
+    ; Useful Boolean routines
+    ; ******************************
+    ; **** BNOT
+BNOT
+    jsr ALLNUM
+    jsr ALNUM
+    ldy #2
+    lda #$ff
+    eor (ARGA),y
+    sta (POINT),y
+    iny
+    lda #$ff
+    eor (ARGA),y
+    sta (POINT),y
+    jmp AMADE
+
+
+    ; **** BAND
+BAND
+    jsr ALLNUM
+    jsr ALNUM
+    lda #$ff
+    ldy #3
+    sta (POINT),y
+    dey
+    sta (POINT),y
+    ldx TVSEXT
+MBAND
+    dex
+    dex
+    lda TVS,x
+    sta WSA
+    lda TVS+1,x
+    sta WSA+1
+    lda (WSA),y
+    and (POINT),y
+    sta (POINT),y
+    iny
+    lda (WSA),y
+    and (POINT),y
+    sta (POINT),y
+    dey
+    cpx #$0a
+    bne MBAND
+    jmp AMADE
+
+
+    ; **** BOR
+BOR
+    jsr ALLNUM
+    jsr ALNUM
+    lda #0
+    ldy #3
+    sta (POINT),y
+    dey
+    sta (POINT),y
+    ldx TVSEXT
+MBOR
+    dex
+    dex
+    lda TVS,x
+    sta WSA
+    lda TVS+1,x
+    sta WSA+1
+    lda (WSA),y
+    ora (POINT),y
+    sta (POINT),y
+    iny
+    lda (WSA),y
+    ora (POINT),y
+    sta (POINT),y
+    dey
+    cpx #$0a
+    bne MBOR
+    jmp AMADE

@@ -1,0 +1,482 @@
+    ; Filename: LISP03 - Warm start, supervisor and stack
+    
+    ; ******************************
+    ; Routine to give optionsl warm
+    ; start (ie OBLIST retained)
+    ; ******************************
+    
+WRMCHK
+    HIWARM = WRMCHK+HILISP-LISVAL ; XXX moved hefre to after WRMCHK defined
+    lda STATYP
+    cmp #WARMST
+    bne NOTWRM
+    jmp WARM                                       ; Offer warm start
+
+NOTWRM
+    lda TUBE
+    bne COLD1
+    lda #WARMST                                    ; We're in tube and
+    sta STATYP                                     ; it's first time through
+    jmp INUREL
+
+COLD1
+    jmp COLD
+
+WARM
+    lda MEMINV
+    bne REBOOT
+    ldx #WRMOFF
+    jsr MESSAH
+    jsr OSRDCH                                     ; Read a character from the current input stream
+    and #$7f
+    cmp #'C'
+    beq REBOOT
+    cmp #'c'
+    beq REBOOT
+    lda #'W'
+    jsr OSWRCH                                     ; Write character 87
+    jmp INIT
+
+
+    ; **** Reload from ROM
+REBOOT
+    lda #'C'
+    jsr OSWRCH                                     ; Write character 67
+    jsr CROUT
+    jsr CROUT
+    ldx #<(LISTR)
+    ldy #>(LISTR)
+    jmp OSCLI
+
+
+    ; ******************************
+    ; This is the main LISP
+    ; supervisor loop which is
+    ; entered when LISP is called.
+    ; ******************************
+SUPER
+    lda #0                                         ; Reset stack
+    sta SP
+    lda ARETOP
+    sta SP+1
+    ldx #$ff                                       ; Reset hardware stack
+    txs
+    lda MODEF                                      ; Check mode flag
+    bpl EVPR
+    jsr MODCHN                                     ;  Change mode
+EVPR
+    ldx #EVOFF
+    jsr MESSAH                                     ; Evaluate:
+    jsr RSREAD                                     ; Read expression
+    jsr EVALU                                      ; Evaluate it
+    ldx #VALOFF                                    ; Value is:
+    jsr MESSAH
+    jsr PRINA                                      ; and print it
+    jmp SUPER                                      ; Repeat ad infinitum
+
+
+    ; ******************************
+    ; Here are some condition
+    ; routines taking advantage
+    ; of POP
+    ; ******************************
+    ; **** ATOM
+ATOM
+    lda ARGA+1                                     ; Is ARGA atom?
+    beq YES                                        ; NIL => yes
+    ldy #0
+    lda (ARGA),y                                   ; check bit 7
+    bpl YES
+    bmi NO
+
+    ; **** EQ
+EQ
+    lda ARGB+1                                     ; ARGA = ARGB?
+    beq NULL                                       ; ARGB NIL => ARGA NIL
+    cmp ARGA+1
+    bne EQUATE                                     ; But they are numeric
+    lda ARGB
+    cmp ARGA
+    beq YES
+EQUATE
+    ldy #0                                         ; Fudge for nums
+    lda (ARGA),y
+    cmp #NUMF                                      ; Both must be nums
+    bne NO
+    cmp (ARGB),y
+    bne NO
+    iny
+    lda (ARGA),y
+    cmp (ARGB),y                                   ; Same length?
+    bne NO
+    tay
+    dey
+EQUINE
+    lda (ARGA),y                                   ; Compare value
+    cmp (ARGB),y
+    bne NO
+    dey
+    bne EQUINE
+    beq YES
+
+    ; **** NULL
+NULL
+    lda ARGA+1                                     ; Is ARGA NIL?
+    beq YES
+NO
+    lda #0                                         ; Returns NIL
+    beq POPA
+YES
+    lda #<s_T                                      ; Returns T
+    sta ARG
+    lda TRUVAL
+POPA
+    sta ARG+1
+
+    ; ******************************
+    ; POP is one of the two LISP
+    ; stack handling routines. It
+    ; restores old binding values
+    ; and WSA, WSB and WSC from the
+    ; stack and POP the stack. ARG
+    ; is unchanged.
+    ; ******************************
+POP
+    ldy #0                                         ; Get binding size
+    lda (SP),y
+    beq NOBOUN                                     ; No bindings to do
+    tay
+POPPLE
+    lda (SP),y
+    sta RETADD+1                                   ; Get atom
+    dey
+    lda (SP),y
+    sta RETADD
+    dey
+    lda (SP),y                                     ; Get old value
+    tax                                            ; into A,X
+    dey
+    lda (SP),y
+    dey
+    sty POPPY                                      ; Save Y
+    ldy #2                                         ; Put value back
+    sta (RETADD),y                                 ; into atom value
+    iny                                            ; cell
+    txa
+    sta (RETADD),y
+    ldy POPPY                                      ; Fetch Y back
+    bne POPPLE                                     ; More bindings?
+    lda (SP),y
+    clc                                            ; Set stack pointer
+    adc SP                                         ; to bottom of work-
+    sta SP                                         ; Space area as if
+    bcc NOBOUN                                     ; there were no binds
+    inc SP+1
+NOBOUN
+    iny                                            ; Now Y = 1
+    lda (SP),y
+    tay                                            ; Index for top space
+    dey
+    lda (SP),y                                     ; Push return addr
+    pha
+    dey
+    lda (SP),y
+    pha
+    dey
+MORSP
+    lda (SP),y                                     ; Copy back TVS
+    sta BINDER,y                                   ; WSA, WSB and WSC
+    dey
+    bne MORSP
+    sec                                            ; Add TVSEXT + 2 to stack
+    lda SP                                         ; pointer to POP the stack
+    adc TVSEXT
+    bcs TVF
+    adc #1
+    bcc TVG
+    clc
+TVF
+    adc #0
+    inc SP+1
+TVG
+    sta SP
+    rts
+
+
+    ; ******************************
+    ; STACK stores:
+    ;    Extent of TVS, WSA, WSB,
+    ;    WSC, ARG and return addr
+    ;     on the LISP stack
+    ; ******************************
+STACK
+    lda SP
+    clc
+    sbc TVSEXT
+    tax
+    bne EXTRAM
+    clc
+EXTRAM
+    dex
+    lda SP+1
+    sbc #0
+    cmp AREVAL+1
+    bcc SQUAT
+    bne SROOM
+    cpx AREVAL
+    bcs SROOM
+SQUAT
+    jsr RUBBSH
+    bne STACK
+STIR
+    brk                                            ; None found
+
+    !byte 0
+    !text "No room"
+    !byte 0
+
+SROOM
+    sta SP+1
+    stx SP
+    pla
+    sta RETADD
+    pla
+    tax
+    ldy TVSEXT
+    iny
+    lda ARG+1                                      ; Store ARG
+    sta (SP),y
+    dey
+    lda ARG
+    sta (SP),y
+    dey
+    dey
+    pla                                            ; Store return addr
+    sta (SP),y
+    iny
+    pla
+    sta (SP),y
+    dey
+    dey
+PILE
+    lda BINDER,y
+    sta (SP),y
+    dey
+    bpl PILE
+    txa
+    pha
+    lda RETADD
+    pha
+    rts
+
+
+    ; ******************************
+    ; BIND adds a 'new value' to the
+    ; bottom of the stack:
+    ;   WSD     - Pointer to atom
+    ;   TVS + X - New value
+    ; ******************************
+BIND
+    lda SP
+    sec
+    sbc #4
+    tay
+    lda SP+1
+    sbc #0
+    cmp AREVAL+1
+    bcc SQUASH
+    bne XROOM
+    cpy AREVAL
+    bcs XROOM
+SQUASH
+    jsr RUBBSH
+    bne BIND
+BEAR
+    brk                                            ; None found
+
+    !byte 1
+    !text "No room"
+    !byte 0
+
+XROOM
+    sta SP+1
+    sty SP
+    ldy #4
+    lda (SP),y
+    adc #3                                         ; Carry is set
+    pha
+    lda WSD+1
+    sta (SP),y
+    dey
+    lda WSD
+    sta (SP),y
+    lda (WSD),y                                    ; Old value and atom
+    dey
+    sta (SP),y                                     ; on stack
+    lda (WSD),y
+    dey
+    sta (SP),y
+    dey
+    pla
+    sta (SP),y                                     ; Bound var size
+    ldy #2
+    lda TVS,x                                      ; New value in atom
+    sta (WSD),y
+    iny
+    lda TVS+1,x
+    sta (WSD),y
+    rts
+
+
+    ; ******************************
+    ; Here is the space allocator
+    ; routine. If allocates up to
+    ; 256 bytes of initialized store
+    ; ******************************
+ALNUM
+    lda #4
+ALVEC
+    ldx #NUMF
+    bne SPACE
+ALCHAR
+    ldx #CHARF
+    beq SPACE
+ALFSBR
+    ldx #FSUBRF
+    lda #6
+    bne SPACE
+ALSUBR
+    ldx #SUBRF
+    lda #6
+    bne SPACE
+ALPAIR
+    lda #5
+    ldx #$80                                       ; Pointer space
+SPACE
+    sta SIZE
+SPACEB
+    clc
+    lda AREVAL
+    sta POINT
+    adc SIZE
+    tay
+    lda AREVAL+1
+    sta POINT+1
+    adc #0
+    cmp SP+1
+    bcc ROOM
+    bne SQUID
+    cpy SP
+    bcc ROOM
+SQUID
+    jsr RUBBSH
+    bne SPACEB
+ALLO
+    brk                                            ; None found
+
+    !byte 2
+    !text "No room"
+    !byte 0
+
+ROOM
+    sta AREVAL+1
+    sty AREVAL
+    ldy #0
+    txa
+    sta (POINT),y
+    bmi PINS
+    bne OBSCUR
+    ldy #5
+    lda #0
+    sta (POINT),y
+    ldy #2
+    lda #<s_UNDEFINED                              ; UNDEFINED
+    sta (POINT),y
+    iny
+    lda ZAVAL
+    sta (POINT),y
+OBSCUR
+    ldy #1
+    lda SIZE
+    sta (POINT),y
+    rts
+
+PINS
+    lda #0
+    ldy #2
+    sta (POINT),y                                  ; Initial NIL point
+    ldy #4
+    sta (POINT),y
+    rts
+
+
+    ; ******************************
+    ; Here are the initialisation
+    ; routines
+    ; ******************************
+INIT
+    lda #<ERROR
+    sta BRKVEC                                       ; Error handling
+    lda #>ERROR
+    sta BRKVEC+1
+    lda #osbyte_read_himem                         ; Find end of memory
+    jsr OSBYTE                                     ; Read top of user memory (HIMEM)
+    sty ARETOP
+
+    ; **** Set up various values
+    lda #$fc                                       ; Messages except GC
+    sta LEVEL
+    ldx #0
+    stx HANDLE                                     ; Output to screen
+    stx GCNO                                       ; Zero collections
+    stx GCNO+1
+    stx ERRCNT                                     ; Zero error count
+    stx ERRCNT+1
+    ldy #$10                                       ; Clear TVS etc.
+ZLP
+    stx TVS,y
+    dey
+    bpl ZLP
+    lda #$0a                                       ; Initially no args
+    sta TVSEXT
+    jsr GCTIMZ                                     ; Zero GC time
+    jsr STCLK                                      ; Zero time
+    lda #<KBD                                      ; Set up Escape check
+    sta IODCB
+    lda #>KBD
+    sta IODCB+1
+    lda #0
+    sta IODCB+2
+    sta IODCB+3
+    jmp SUPER                                      ; Enter supervisor
+
+
+    ; **** Message handler
+MESSAH
+    ldy #0
+MESSAI
+    sty HANDLE
+MESSAG
+    lda TEXT,x                                     ; Print message
+    php
+    and #$7f                                       ; Remove flag bit
+    jsr OUT
+    inx
+    plp                                            ; Retrieve flag
+    bpl MESSAG                                     ; Bit 7 not set
+    rts
+
+OUT
+    ldy HANDLE                                     ; to screen?
+    beq OUTSCR
+    jmp OSBPUT                                     ; Write a single byte A to an open file Y
+
+OUTSCR
+    cmp #$0d
+    bne NCR
+CROUT
+    lda #$0d
+NCR
+    jmp OSASCI                                     ; Print the char; Write character 13
+
+

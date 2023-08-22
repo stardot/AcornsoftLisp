@@ -1,0 +1,352 @@
+    ; Filename: LISP11 - Error handler
+    
+    ; ******************************
+    ; The error handler
+    ; The stack is "gently" taken
+    ; down with diagnostic printout.
+    ; ******************************
+
+ERRORS
+    ; **** Main error entry
+ERROR
+    lda #osbyte_acknowledge_escape                 ; Ack escape
+    jsr OSBYTE                                     ; Clear escape condition and perform escape effects
+    clc                                            ; Increment error count
+    lda ERRCNT
+    adc #1
+    sta ERRCNT
+    lda ERRCNT+1
+    adc #0
+    sta ERRCNT+1
+    lda LEVEL                                      ; Save LEVEL
+    sta OLDLEV
+    ldy #0
+    lda (BRKAD),y                                  ; Get errno.
+    sta ERRNO
+    sta ACL
+
+    ; **** Traceback wanted?
+    ldx #$ff
+NEXCAT
+    inx
+    lda CATTAB,x
+    bmi TRCOK                                      ; Allow trackback
+    cmp ERRNO
+    bne NEXCAT
+    lda LEVEL                                      ; Match
+    and #$e7
+    sta LEVEL                                      ; No traceback
+TRCOK
+    ldx #$ff
+    txs                                            ; Reset stack
+    inx
+    stx DEPTH
+    stx HANDLE
+    lda #$0e                                       ; Page mode
+    jsr OSWRCH                                     ; Write character 14
+    lda #$18                                       ; Mask for LEVEL
+    sta TOPBIN
+    lda #4                                         ; Error
+    and LEVEL
+    beq NERRA
+    ldx #ERROFF                                    ; "^Error number "
+    jsr MESSAH
+    lda #0
+    sta ACL+1
+    jsr PINT                                       ; Print err no.
+NERRA
+    lda #$ff
+    bit LEVEL                                      ; Err mess mask
+    beq NERRB
+    jsr PSTRNG                                     ; Print err mess
+NERRB
+    lda #8                                         ; Top args mask
+    and LEVEL
+    beq NERRC
+    jsr PARG                                       ; Print ARG
+NERRC
+    lda SP+1
+DWARF=NERRC-1
+    cmp ARETOP                                     ; Pop return
+    bcc WINDER                                     ; stack completely
+    lda #$0f
+    jsr OSWRCH                                     ; Page mode off; Write character 15
+    lda OLDLEV
+    sta LEVEL                                      ; Old LEVEL
+    jmp SUPER                                      ; Restart
+
+
+    ; **** Collapse the stack
+WINDER
+    ldx #0
+    stx ACL+1
+    stx WSC+1                                      ; Used bind count
+    lda (SP,x)                                     ; Get binding state
+    tay
+    iny
+    clc
+    adc (SP),y                                     ; Add work space
+    tay
+    iny
+    lda (SP),y                                     ; To get ARG
+    sta WSB+1
+    dey                                            ; Put ARG in WSB
+    lda (SP),y
+    sta WSB
+    dey
+    lda (SP),y                                     ; Check ret addr for
+    dey                                            ;  ERRORSET
+    cmp #>ELFIN-1
+    bne SLIP
+    lda (SP),y                                     ; and low byte
+    cmp #<ELFIN-1
+    bne SLIP                                       ; Not ERRORSET
+    tya
+    clc
+    adc #4                                         ; Remove ERRORSET
+    adc SP                                         ; stack entry
+    sta SP
+    bcc QZQ
+    inc SP+1
+QZQ
+    lda ERRNO                                      ; Return err no.
+    sta ACL
+    lda #$0f
+    jsr OSWRCH                                     ; Page mode off; Write character 15
+    jmp ACLRET                                     ; POP via ACLRET
+
+SLIP
+    lda #<DWARF
+    sta (SP),y                                     ; Set up return for POP
+    iny
+    lda #>DWARF
+    sta (SP),y
+    lda LEVEL                                      ; Check trace print
+    and TOPBIN                                     ; is this second arg
+    beq NOPE                                       ; Skip rint
+    and #$10                                       ; Clear top arg flag
+    sta TOPBIN
+    beq BINS
+    lda (SP,x)                                     ; Any bound vars?
+    beq BINS
+
+    ; **** Do bound var pairs
+    tay
+ERBIN
+    lda (SP),y                                     ; Get var name into
+    sta ARG+1                                      ; ARG
+    dey
+    lda (SP),y
+    sta ARG
+    dey
+    dey
+    dey
+    sty WSC                                        ; NB. WSC +&01 is &00
+    jsr CROUT
+    jsr PRINA                                      ; Print var name
+    lda #'='
+    jsr OUT
+    lda #' '                                       ; Print a space
+    jsr OUT
+    ldy #3                                         ; Get the value of the
+    lda (ARG),y                                    ; variable into ARG
+    tax
+    dey
+    lda (ARG),y
+    sta ARG
+    stx ARG+1
+    jsr PRINA                                      ; Print it
+    ldy WSC                                        ; Repeat if more
+    bne ERBIN
+
+    ; **** Remove rest of stack
+BINS
+    lda WSB
+    sta ARG
+    lda WSB+1
+    sta ARG+1
+    jsr PARG
+NOPE
+    jmp POP                                        ; And back to NERRC
+
+ERCN
+    ldy #0
+    ldx #1
+ERCND
+    lda ERRCNT,x
+    sta ACL,x
+    sty ERRCNT,x
+    dex
+    bpl ERCND
+    jmp ACLRET
+
+PSTRNG
+    ldx #0                                         ; Print err mess
+    lda #$0d
+NXOUT
+    jsr OUT
+    inx
+    txa
+    tay
+    lda (BRKAD),y
+    bne NXOUT
+    jmp CROUT
+
+PARG
+    ldx ARG+1                                      ; Look for flag
+    inx
+    beq ARGRTS
+    ldx #ARGOFF                                    ; Print ARG
+    jsr MESSAH                                     ; 'Arg :'
+    jmp PRINA
+
+ARGRTS
+    rts
+
+
+    ; **** ERRORSET
+ERRSET
+    jsr STEVAL
+ELFIN
+    jsr ALPAIR
+    ldy #2
+    lda ARG+1
+    sta (POINT),y
+    dey
+    lda ARG
+    sta (POINT),y
+    jmp AMADE
+
+STEVAL
+    jsr STACK                                      ; ELFIN on stack
+    jsr NXEVAL
+    jmp POP
+
+
+    ; ******************************
+    ; Useful arithmetic routines
+    ; ******************************
+    ; **** 16 bit multiply
+MULPM
+    jsr MDA
+MUL
+    ldy #$10                                       ; Index for 16 bits
+MULB
+    lda ACL
+    lsr
+    bcc MULD
+    clc
+    ldx #$fe
+MULC
+    lda AUXL,x
+    adc SIGN,x
+    sta AUXL,x
+    inx
+    bne MULC
+MULD
+    ldx #3
+MULE
+    ror ACL,x
+    dex
+    bpl MULE
+    dey
+    bne MULB
+    rts
+
+
+    ; **** 16 bit divide
+DIVPM
+    jsr MDA
+DIV
+    ldy #$10
+DIVB
+    asl ACL
+    rol ACL+1
+    rol XTNDL
+    rol XTNDL+1
+    sec
+    lda XTNDL
+    sbc AUXL
+    tax
+    lda XTNDL+1
+    sbc AUXL+1
+    bcc DIVC
+    stx XTNDL
+    sta XTNDL+1
+    inc ACL
+DIVC
+    dey
+    bne DIVB
+    rts
+
+
+    ; **** Negation routines
+MDA
+    ldy #0
+    sty SIGN                                       ; Abs value of
+    ldx #AUXL                                      ; AUXL with sign in
+    jsr MDB
+    ldx #ACL                                       ; ls bit of SIGN
+MDB
+    lda GCNO+1,x
+    bpl MDRTS
+MD
+    sec
+    tya
+    sbc GCNO,x
+    sta GCNO,x
+    tya
+    sbc GCNO+1,x
+    sta GCNO+1,x
+    inc SIGN
+MDRTS
+    rts
+
+
+    ; **** 40 bit divide
+DIV40
+    lda #$28
+DIV40B
+    pha
+    asl ACL40
+    ldx #1
+    ldy #3
+MDIV1
+    rol ACL40,x
+    inx
+    dey
+    bpl MDIV1
+    ldx #0
+    ldy #4
+MDIV2
+    rol REM40,x
+    inx
+    dey
+    bpl MDIV2
+    sec
+    ldx #0
+    ldy #4
+MDIV3
+    lda REM40,x
+    sbc AUX40,x
+    sta TEMP40,x
+    inx
+    dey
+    bpl MDIV3
+    bcc DIV40C
+    ldx #4
+MDIV4
+    lda TEMP40,x
+    sta REM40,x
+    dex
+    bpl MDIV4
+    inc ACL40
+DIV40C
+    pla
+    tay
+    dey
+    tya
+    bne DIV40B
+    rts
+
+LISPEN

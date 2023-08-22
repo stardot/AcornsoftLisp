@@ -1,0 +1,951 @@
+    ; Filename: LISP08 - Various functions
+    
+    ; ******************************
+    ; Arithmetic functions
+    ; ******************************
+
+    ; **** RECLAIM
+RECLAM
+    jsr RUBBSH                                     ; Force G.C.
+    jmp NO
+
+
+    ; **** QUOTIENT
+QUOT
+    ldx #ACL
+    bne DODO
+
+    ; **** REMAINDER
+REM
+    ldx #XTNDL
+DODO
+    stx XPR                                        ; Save index for
+    jsr ALLNUM                                     ; returned number
+    ldy #0
+    sty XTNDL                                      ; Zero initial rem.
+    sty XTNDL+1
+    jsr ALNUM                                      ; Have cell ready
+    ldy #2
+    lda (ARGA),y                                   ; Move ARG"s" to
+    sta ACL                                        ; workspace
+    lda (ARGB),y
+    sta AUXL
+    iny
+    ora (ARGB),y
+    beq OVFERR                                     ; Divide by zero!
+    lda (ARGA),y
+    sta ACL+1
+    lda (ARGB),y
+    sta AUXL+1
+    jsr DIVPM                                      ; Divide
+    lsr SIGN                                       ; Check sign
+    bcc POSV
+    ldx #ACL                                       ; Change ACL sign
+    jsr MD
+POSV
+    ldy #2                                         ; RETREIVE RESULT
+    ldx XPR
+    lda GCNO,x
+    sta (POINT),y                                  ; Put in new cell
+    iny
+    lda GCNO+1,x
+    sta (POINT),y
+    jmp AMADE                                      ; return POINT
+
+
+    ; **** DIFFERENCE
+DIFF
+    jsr ALLNUM
+    jsr ALNUM
+    ldy #2
+    lda (ARGA),y
+    sec
+    sbc (ARGB),y
+    sta (POINT),y
+    iny
+    lda (ARGA),y
+    sbc (ARGB),y
+    bvs OVFERR
+    bvc FINONE
+
+    ; **** MINUS
+MINUS
+    jsr ALLNUM
+    jsr ALNUM
+    ldy #2
+    lda #0
+    sec
+    sbc (ARGA),y
+    sta (POINT),y
+    iny
+    lda #0
+    sbc (ARGA),y
+FINONE
+    sta (POINT),y
+    jmp AMADE
+
+
+    ; **** SUB1
+SUBA
+    jsr ALLNUM
+    jsr ALNUM
+    lda #$ff
+    clc
+    bcc WONE
+
+    ; ADD1
+ADDA
+    jsr ALLNUM
+    jsr ALNUM
+    lda #0
+    sec
+WONE
+    pha
+    ldy #2
+    adc (ARGA),y
+    sta (POINT),y
+    iny
+    pla
+    adc (ARGA),y
+    bvc FINONE
+OVFERR
+    brk                                            ; Overflow
+
+    !byte $12
+    !text "Arithmetic overflow"
+    !byte 0
+
+
+    ; **** PLUS
+PLUS
+    jsr ALLNUM
+    jsr ALNUM
+    lda #0
+    ldy #2
+    sta (POINT),y
+    iny
+    ldx TVSEXT
+    bne PEX
+MPLUS
+    lda TVS,x
+    sta ARG
+    lda TVS+1,x
+    sta ARG+1
+    ldy #2
+    clc
+    lda (POINT),y
+    adc (ARG),y
+    sta (POINT),y
+    iny
+    lda (POINT),y
+    adc (ARG),y
+    bvs OVFERR
+PEX
+    sta (POINT),y
+    dex
+    dex
+    cpx #$0a
+    bcs MPLUS
+    jmp AMADE
+
+
+    ; **** TIMES
+TIMES
+    jsr ALLNUM
+    ldx #1
+    stx ACL
+    dex
+    stx ACL+1
+    ldx TVSEXT
+    bne TREX
+MTIMES
+    lda #0
+    sta XTNDL
+    sta XTNDL+1
+    lda TVS,x
+    sta ARG
+    lda TVS+1,x
+    sta ARG+1
+    ldy #2
+    lda (ARG),y
+    sta AUXL
+    iny
+    lda (ARG),y
+    sta AUXL+1
+    stx XPR
+    jsr MULPM
+    lda XTNDL
+    ora XTNDL+1
+    bne OVFERR
+    lda ACL+1
+    bmi OVFERR
+    ror SIGN
+    bcc POSITV
+    ldx #ACL
+    jsr MD
+POSITV
+    ldx XPR
+TREX
+    dex
+    dex
+    cpx #$0a
+    bcs MTIMES
+ACLRET
+    jsr ALNUM
+    ldy #2
+    lda ACL
+    sta (POINT),y
+    iny
+    lda ACL+1
+    sta (POINT),y
+    jmp AMADE
+
+
+    ; **** CHARS
+CHARS
+    jsr ALNUM
+    ldx ARGA+1
+    beq XGOOD
+    ldx #4                                         ; List index
+    ldy #0
+    lda (ARGA),y
+    bmi XGOOD
+    bne FIXTY
+    iny
+    lda (ARGA),y
+    sec
+    sbc #6
+    bcs AGOT
+FIXTY
+    lsr
+    lsr
+    tax
+XGOOD
+    lda LENTAB,x
+AGOT
+    ldy #2
+    sta (POINT),y
+    iny
+    lda #0
+    sta (POINT),y
+    jmp AMADE
+
+GPLIST
+    jsr CHARQ
+    ldy #4
+    lda (ARGA),y
+    sta ARG
+    iny
+    lda (ARGA),y
+    jmp POPA
+
+
+    ; **** RPLACA
+RPLACA
+    ldy #1
+    bne PLAQ
+
+    ; **** RPLACD
+RPLACD
+    ldy #3
+PLAQ
+    lda ARGA+1
+    beq PLAQER
+    ldx #0
+    lda (ARGA,x)
+    bpl PLAQER
+    lda ARGB
+    sta (ARGA),y
+    iny
+    lda ARGB+1
+    sta (ARGA),y
+    jsr ATOA
+    jmp POP
+
+PLAQER
+    brk                                            ; Wrong 1st arg
+
+    !byte $13
+    !text "RPLACA/RPLACD argument"
+    !byte 0
+
+
+    ; **** LESSP
+LESSP
+    ldx #1
+SWIP
+    lda ARGA,x
+    ldy ARGB,x
+    sta ARGB,x
+    sty ARGA,x
+    dex
+    bpl SWIP
+
+    ; **** GREATERP
+GT
+    jsr ALLNUM
+    ldy #3
+    lda (ARGB),y
+    cmp #$80
+    eor (ARGA),y
+    bmi DFSGN
+    dey
+    lda (ARGB),y
+    cmp (ARGA),y
+    iny
+    lda (ARGB),y
+    sbc (ARGA),y
+    bcs SMALLR
+BIGGER
+    jmp YES
+
+DFSGN
+    bcs BIGGER
+SMALLR
+    jmp NO
+
+SOCK
+    ldy #4
+    lda (ARGA),y
+    sta WSB
+    iny
+    lda (ARGA),y
+    sta WSB+1                                      ; A-list search
+SOCKA
+    bne LKG                                        ; routine
+    rts
+
+ROCKON
+    ldy #3
+    lda (WSB),y
+    tax
+    iny
+    lda (WSB),y
+    bne LKH
+    rts
+
+LKH
+    sta WSB+1
+    stx WSB
+LKG
+    ldx #0
+    ldy #1
+    lda (WSB,x)
+    bpl ALERR
+    lda (WSB),y
+    sta WSD
+    iny
+    lda (WSB),y
+    sta WSD+1
+    lda (WSD,x)
+    bpl ALERR
+    lda ARGB+1
+    cmp (WSD),y
+    bne ROCKON
+    dey
+    lda ARGB
+    cmp (WSD),y
+    bne ROCKON
+    lda #$ff
+    rts
+
+ALERR
+    brk                                            ; P-list error
+
+    !byte $14
+    !text "P-list structure"
+    !byte 0
+
+
+    ; **** ASSOC
+ASSOC
+    lda ARGB
+    pha
+    sta WSB
+    lda ARGB+1
+    pha
+    sta WSB+1
+    lda ARGA                                       ; Fudge arg order
+    sta ARGB
+    lda ARGA+1
+    sta ARGB+1
+    jsr SOCKA
+    cmp #1                                         ; Save ret code as carry
+    pla
+    sta ARGB+1
+    pla
+    sta ARGB
+    lda #0
+    bcc HAUSE                                      ; If SOCKA returned zero
+    lda WSD
+    sta ARG
+    lda WSD+1
+HAUSE
+    sta ARG+1
+    jmp POP
+
+
+    ; **** GET
+GET
+    jsr CHARQ
+    jsr SOCK
+    beq HAUSE
+    ldy #3
+    lda (WSD),y
+    sta ARG
+    iny
+    lda (WSD),y
+    sta ARG+1
+    jmp POP
+
+
+    ; **** PUT
+PUT
+    jsr CHARQ
+    jsr SOCK
+    beq INSERP
+    ldy #3
+    lda ARGC
+    sta (WSD),y
+    sta ARG
+    iny
+    lda ARGC+1
+    sta (WSD),y
+    jmp POPA
+
+INSERP
+    jsr ALPAIR
+    lda POINT
+    sta WSB
+    lda POINT+1
+    sta WSB+1
+    jsr ALPAIR
+    ldy #5
+    lda (ARGA),y
+    dey
+    sta (WSB),y
+    lda ARGC+1
+    sta ARG+1
+    sta (POINT),y
+    lda (ARGA),y
+    dey
+    sta (WSB),y
+    lda ARGC
+    sta ARG
+    sta (POINT),y
+    dey
+    lda ARGB+1
+    sta (POINT),y
+    lda POINT+1
+    sta (WSB),y
+    dey
+    lda ARGB
+    sta (POINT),y
+    lda POINT
+    sta (WSB),y
+    ldy #5
+    lda WSB+1
+    sta (ARGA),y
+    dey
+    lda WSB
+    sta (ARGA),y
+    jmp POP
+
+
+    ; **** REMPROP
+REMPR
+    jsr CHARQ
+    jsr SOCK
+    beq HOUSE
+    ldy #3
+    lda (WSB),y
+    sta WSC
+    iny
+    lda (WSB),y
+    sta WSC+1
+    ldy #5
+FRUIT
+    lda (ARGA),y
+    tax
+    cmp WSB+1
+    bne FRUT
+    dey
+    lda (ARGA),y
+    cmp WSB
+    bne FRUTA
+    lda WSC
+    sta (ARGA),y
+    iny
+    lda WSC+1
+    sta (ARGA),y
+    jmp YES
+
+FRUT
+    dey
+    lda (ARGA),y
+FRUTA
+    stx ARGA+1
+    sta ARGA
+    ldy #4
+    bne FRUIT
+HOUSE
+    jmp NO
+
+
+    ; **** Check all numeric args
+ALLNUM
+    lda #NUMF
+    ldx TVSEXT
+    bne COMPX
+MORIX
+    ldy TVS+1,x
+    beq NUER
+    cmp (TVS,x)
+    bne NUER
+COMPX
+    dex
+    dex
+    cpx #$0a
+    bcs MORIX
+    rts
+
+NUER
+    brk                                            ; Non-numeric args
+
+    !byte $15
+    !text "Non-numeric argument"
+    !byte 0
+
+EVAL
+    jsr ATOA
+    jsr EVALU
+    jmp POP
+
+
+    ; ******************************
+    ; APPLY/MAP complex
+    ; ******************************
+APFUN
+    lda ARGA+1
+    beq APFERR
+    ldy #0
+    sty WSB+1
+    lda (ARGA),y
+    bmi GEVIL
+    cmp #SUBRF
+    beq GFRTS                                      ; It's a subr
+APFERR
+    brk
+
+    !byte $16
+    !text "APPLY argument"
+    !byte 0
+
+GEVIL
+    iny                                            ; Expr?
+    lda (ARGA),y
+    cmp #<s_LAMBDA
+    bne APFERR
+    iny
+    lda (ARGA),y
+    cmp LAMVAL
+    bne APFERR
+    iny
+    lda (ARGA),y
+    sta WSD
+    iny
+    lda (ARGA),y
+    sta WSD+1
+    beq APFERR
+    ldy #0
+    lda (WSD),y
+    bpl APFERR
+    iny
+    lda (WSD),y                                    ; Parm list in WSB
+    sta WSB
+    iny
+    lda (WSD),y
+    sta WSB+1
+    beq APFERR
+    iny
+    lda (WSD),y
+    sta WSC                                        ; Body in WSC
+    iny
+    lda (WSD),y
+    sta WSC+1
+    ldy #0
+    lda (WSB),y                                    ; Fexpr?
+    bpl APFERR
+    rts
+
+GFRTS
+    lda ARGA
+    sta WSC
+    lda ARGA+1
+    sta WSC+1
+    rts
+
+APERR
+    brk                                            ; APPLY list
+
+    !byte $17
+    !text "APPLY arguments"
+    !byte 0
+
+
+    ; **** APPLY
+APPLY
+    jsr APFUN
+    ldx #$0a
+    lda ARGB+1
+    beq APGO
+    sta WSA+1
+    lda ARGB
+    sta WSA
+APL
+    ldy #0
+    lda (WSA),y
+    bpl APERR
+    iny
+    lda (WSA),y
+    sta TVS,x
+    iny
+    inx
+    lda (WSA),y
+    sta TVS,x
+    inx                                            ; Spread args into TVS
+    cpx #$42
+    bcs APERR
+    ldy #4
+    lda (WSA),y
+    beq APGO
+    pha
+    dey
+    lda (WSA),y
+    sta WSA
+    pla
+    sta WSA+1
+    bne APL                                        ; Always taken
+APGO
+    stx TVSEXT
+APGOB
+    lda WSB+1
+    beq SUBAP
+    jmp RADON                                      ; Expr entry
+
+SUBAP
+    jmp INSUBR                                     ; Subr entry
+
+MAPSTR
+    jsr APFUN                                      ; Prelims for
+    ldx #$0c                                       ; MAP functions
+MAPMOV
+    lda TVS,x
+    sta TVS-2,x
+    inx
+    lda TVS,x
+    sta TVS-2,x
+    beq MAPRTS
+    inx
+    cpx TVSEXT
+    bcc MAPMOV
+    dex
+    dex
+    stx TVSEXT
+MAPRTS
+    rts
+
+NILMAP
+    jmp POPA
+
+
+    ; **** MAP
+MAP
+    jsr MAPSTR
+    beq NILMAP
+MAPON
+    jsr CARAP
+    jsr CDRALL
+    bne MAPON
+    jmp NO
+
+
+    ; *** MAPC
+MAPCAR
+    jsr MAPSTR
+    beq NILMAP
+    jsr ALPAIR
+    ldy #4
+    lda POINT+1
+    sta WSA+1
+    sta (POINT),y
+    lda POINT
+    sta WSA
+    dey
+    sta (POINT),y
+MAPCON
+    jsr CARAP
+    jsr ALPAIR
+    ldy #2
+    lda (WSA),y
+    bne OLDMAP
+    lda POINT+1
+    sta (WSA),y
+    lda POINT
+    dey
+    sta (WSA),y
+OLDMAP
+    ldy #4
+    lda (WSA),y
+    sta WSD+1
+    dey
+    lda (WSA),y
+    sta WSD
+    lda POINT
+    sta (WSD),y
+    sta (WSA),y
+    iny
+    lda POINT+1
+    sta (WSD),y
+    sta (WSA),y
+    ldy #2
+    lda ARG+1
+    sta (POINT),y
+    dey
+    lda ARG
+    sta (POINT),y
+    jsr CDRALL
+    bne MAPCON
+    ldy #1
+    lda (WSA),y
+    sta ARG
+    iny
+    lda (WSA),y
+    jmp POPA
+
+
+    ; **** GETCHAR
+GETCHA
+    ldx TVSEXT                                     ; File arg?
+    cpx #$0c
+    bcc GETDIR
+    jsr FILGC
+    jsr GTCHAR
+    jmp POST
+
+GETDIR
+    jsr OSRDCH                                     ; Grab a char; Read a character from the current input stream
+    bcc POST
+    brk
+
+    !byte $1c
+    !text "Escape"
+    !byte 0
+
+
+    ; **** CHARACTER
+ASCII
+    jsr ALLNUM
+    ldy #2
+    lda (ARGA),y
+POST
+    jsr LETTER                                     ; Finds char atom
+    jmp AMADE
+
+
+    ; **** ORDINAL
+ORDINL
+    jsr CHARQ
+    jsr ALNUM
+    ldy #1
+    lda (ARGA),y
+    sec
+    sbc #6
+    beq EMPTYC
+    ldy #6
+    lda (ARGA),y
+EMPTYC
+    jmp AGOT
+
+CARAP
+    jsr STACK
+    ldx TVSEXT
+    bne CARAFE
+CARAVA
+    dex
+    lda TVS,x
+    sta WSD+1
+    beq MAPERR
+    lda TVS-1,x
+    sta WSD
+    ldy #0
+    lda (WSD),y
+    bpl MAPERR
+    iny
+    lda (WSD),y
+    sta TVS-1,x
+    iny
+    lda (WSD),y
+    sta TVS,x
+    dex
+CARAFE
+    cpx #$0c
+    bcs CARAVA
+    jmp APGOB
+
+MAPERR
+    brk                                            ; MAP args
+
+    !byte $18
+    !text "MAP/MAPC arguments"
+    !byte 0
+
+CDRALL
+    ldx TVSEXT
+    bne CDRAWL
+CDRAVA
+    dex
+    lda TVS,x
+    sta WSD+1
+    lda TVS-1,x
+    sta WSD
+    ldy #0
+    lda (WSD),y
+    bpl MAPERR
+    ldy #4
+    lda (WSD),y
+    beq CDREND
+    sta TVS,x
+    dex
+    dey
+    lda (WSD),y
+    sta TVS,x
+CDRAWL
+    cpx #$0c
+    bcs CDRAVA
+CDREND
+    rts
+
+
+    ; **** EXPLODE
+EXPLOD
+    jsr CHARQ
+    sty ARG+1
+    iny
+    lda (ARGA),y
+    bne BANG
+THUMP
+    sbc #1
+    pha
+    jsr ALPAIR
+    ldy #4
+    lda ARG+1
+    sta (POINT),y
+    dey
+    lda ARG
+    sta (POINT),y
+    lda POINT+1
+    sta ARG+1
+    lda POINT
+    sta ARG
+    pla
+    pha
+    tay
+    lda (ARGA),y
+    jsr LETTER
+    ldy #2
+    lda POINT+1
+    sta (ARG),y
+    dey
+    lda POINT
+    sta (ARG),y
+    pla
+BANG
+    cmp #7
+    bcs THUMP
+    jmp POP
+
+IMPERR
+    brk                                            ; No space
+
+    !byte $19
+    !text "No room for IMPLODE"
+    !byte 0
+
+
+    ; **** IMPLODE
+IMPLOD
+    ldx #0
+    lda ARGA+1
+    jmp WSBTST
+
+SQUISH
+    iny
+    lda (ARGA),y
+    sta WSB
+    iny
+    lda (ARGA),y
+    bne NODNIL
+    lda #<s_NIL
+    sta WSB
+    lda NILVAL
+NODNIL
+    sta WSB+1
+    ldy #0
+    lda (WSB),y
+    beq ISCH
+    jmp FILERR                                     ; Not char err
+
+ISCH
+    iny
+    lda (WSB),y
+    sta YSAV
+    ldy #6
+    bne EMM
+SPLOT
+    lda (WSB),y
+    sta OSWBUF,x
+    iny
+    inx
+    beq IMPERR
+EMM
+    cpy YSAV
+    bcc SPLOT
+    ldy #4
+    lda (ARGA),y
+    pha
+    dey
+    lda (ARGA),y
+    sta ARGA
+    pla
+    sta ARGA+1
+WSBTST
+    beq IMPRET
+    ldy #0
+    lda (ARGA),y
+    bmi SQUISH
+IMPRET
+    dex                                            ; Show string length
+    stx END
+    jmp TRYCHR
+
+
+    ; **** MESSON
+MESSON
+    jsr ALLNUM
+    ldy #2
+    lda (ARGA),y
+    ora LEVEL
+    sta LEVEL
+    jmp POP
+
+
+    ; **** MESSOFF
+MESSOF
+    jsr ALLNUM
+    ldy #2
+    lda (ARGA),y
+    eor #$ff
+    and LEVEL
+    sta LEVEL
+    jmp POP

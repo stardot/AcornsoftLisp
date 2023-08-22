@@ -1,0 +1,360 @@
+    ; Filename: LISP04 - Expression evaluator
+    
+    ; ******************************
+    ; Main evaluation routine
+    ;    arg           -> ARG
+    ;    NIL           -> NIL
+    ;    number, entry -> same
+    ;    char          -> same
+    ;    list          -> eval fn
+    ; ******************************
+    
+NXEVAL
+    lda WSA+1
+    bne NXEVAM
+FSARG
+    brk                                            ; No more args
+
+    !byte 3
+    !text "Too few arguments"
+    !byte 0
+
+NXEVAM
+    jsr NXTARH
+
+    ; **** Main evaluator
+EVALU
+    jsr KBCHK                                      ; Main entry
+    beq EVAL1
+    brk                                            ; Escape
+
+    !byte 4
+    !text "Escape"
+    !byte 0
+
+KBCHK
+    ldx #<(IODCB)
+    ldy #>(IODCB)
+    lda #osword_read_io_memory
+    jsr OSWORD                                     ; Read byte of I/O processor memory
+    lda #$80
+    and IODCB+4
+    rts
+
+EVAL1
+    lda ARG+1
+    beq EVARTS                                     ; NIL?
+    ldy #0
+    lda (ARG),y                                    ; Check type
+    bmi EVLIST
+    bne EVARTS
+    ldy #2
+    lda (ARG),y
+    tax
+    iny                                            ; Get value cell
+    lda (ARG),y
+    stx ARG
+    sta ARG+1
+    rts
+
+EVLIST
+    jsr STACK
+    ldy #4
+    lda (ARG),y
+    sta WSA+1
+    dey
+    lda (ARG),y
+    sta WSA
+    dey
+    lda (ARG),y
+    tax
+    dey
+    lda (ARG),y
+    stx ARG+1
+    sta ARG
+    jsr FUN
+    jsr EVALU
+    jsr FUN
+    jsr EVALU
+    jsr FUN
+FUNERR
+    brk                                            ; Can't make function
+
+    !byte 6
+    !text "Function expected"
+    !byte 0
+
+EVARTS
+    rts
+
+FUN
+    lda ARG+1
+    beq FUNERR
+    ldy #0
+    lda (ARG),y
+    beq EVARTS                                     ; Char atom
+    bpl ENT
+    iny                                            ; Lambda?
+    lda (ARG),y
+    cmp #<s_LAMBDA
+    bne EVARTS
+    iny
+    lda (ARG),y
+    cmp LAMVAL
+    bne EVARTS
+    jmp LAMOK
+
+ENT
+    tay                                            ; Probably entry
+    pla
+    pla
+    lda ARG
+    sta WSC                                        ; Keep fn safe
+    lda ARG+1
+    sta WSC+1
+    ldx #$0a
+    stx TVSEXT
+    cpy #FSUBRF
+    beq ISFSBR
+    cpy #SUBRF
+    beq ISSUBR
+    bne FUNERR                                     ; Oops a number!
+MORAG
+    jsr NXEVAM
+    ldx TVSEXT
+    cpx #$42
+    bcs NARGER
+    lda ARG                                        ; Args eval in TVS
+    sta TVS,x
+    inx
+    lda ARG+1
+    sta TVS,x
+    inx
+    stx TVSEXT
+ISSUBR
+    lda WSA+1
+    bne MORAG
+INSUBR
+    ldy #1
+    lda (WSC),y
+    asl
+    clc
+    adc #$0a
+    tax
+    cpx TVSEXT
+    beq ISFSBR
+    bcc ISFSBR
+NARGER
+    brk                                            ; Wrong
+
+    !byte 6
+    !text "Wrong number of arguments"
+    !byte 0
+
+ISFSBR
+    ldy #3
+    lda (WSC),y
+    beq GOSUB
+    sta WSD+1
+    dey
+    lda (WSC),y
+    sta WSD                                        ; List in WSD
+    jmp PLOP
+
+DEFLST
+    pha
+    dey
+    lda (WSD),y
+    sta WSD
+    pla
+    sta WSD+1
+PLOP
+    cpx TVSEXT                                     ; Default needed
+    bcc SKIP
+    ldy #1
+    lda (WSD),y
+    sta TVS,x
+    iny
+    lda (WSD),y
+    sta TVS+1,x
+SKIP
+    inx
+    inx
+    ldy #4
+    lda (WSD),y
+    bne DEFLST
+    stx TVSEXT
+GOSUB
+    ldy #4                                         ; Go and do it!
+    lda (WSC),y
+    sta RETADD
+    iny
+    lda (WSC),y
+    sta RETADD+1
+    jmp (RETADD)                                   ; End of subrs
+
+
+    ; ******************************
+    ; Time for some lambda
+    ; ******************************
+LAMOK
+    pla
+    pla
+    ldy #4
+    lda (ARG),y
+    beq LAMERR                                     ; No parms or body
+    sta WSD+1
+    dey
+    lda (ARG),y
+    sta WSD
+    ldx #$0a
+    stx TVSEXT
+    ldy #0
+    lda (WSD),y
+    bpl LAMERR
+    iny
+    lda (WSD),y                                    ; Parm list
+    sta WSB
+    iny
+    lda (WSD),y
+    sta WSB+1
+    iny
+    lda (WSD),y                                    ; Body in WSC
+    sta WSC
+    iny
+    lda (WSD),y
+    sta WSC+1
+    lda WSB+1                                      ; NIL parms?
+    bne AVX
+    jmp XLAM
+
+AVX
+    ldy #0
+    lda (WSB),y
+    bmi ISEXPR
+    beq ISFXP1                                     ; NB spelling!
+LAMERR
+    brk                                            ; Syntax error
+
+    !byte 7
+    !text "Lambda syntax"
+    !byte 0
+
+ISFXP1
+    jmp ISFXPR
+
+MORFAG
+    jsr NXEVAM
+    ldx TVSEXT                                     ; Spread args for expr
+    cpx #$42
+    bcc GODARG
+    jmp NARGER
+
+GODARG
+    lda ARG
+    sta TVS,x
+    inx
+    lda ARG+1
+    sta TVS,x
+    inx
+    stx TVSEXT
+ISEXPR
+    lda WSA+1
+    bne MORFAG
+RADON
+    ldx #$0a
+XENON
+    ldy #2
+    lda (WSB),y
+    beq LAMERR
+    sta WSD+1
+    dey
+    lda (WSB),y
+    sta WSD
+    dey
+    cpx TVSEXT                                     ; Enough args?
+    lda (WSD),y
+    beq DOBIND
+    bpl LAMERR
+    bcc NOD
+    ldy #3
+    lda (WSD),y
+    sta TVS,x
+    iny                                            ; The default value?
+    lda (WSD),y
+    sta TVS+1,x
+    clc
+NOD
+    ldy #2
+    lda (WSD),y
+    beq LAMERR                                     ; Get the atom bind
+    pha
+    dey
+    lda (WSD),y
+    sta WSD
+    pla
+    sta WSD+1
+    dey
+    lda (WSD),y
+    bne LAMERR                                     ; Must be char atom
+DOBIND
+    bcc GADARG
+    jmp NARGER
+
+GADARG
+    jsr BIND                                       ; Bind takes atom
+    inx                                            ; in WSD and value in TVS + X
+    inx
+    ldy #4
+    lda (WSB),y
+    beq XLAMB
+    pha
+    dey
+    lda (WSB),y
+    sta WSB
+    pla
+    sta WSB+1
+    ldy #0
+    lda (WSB),y
+    bmi XENON
+    jmp LAMERR
+
+ISFXPR
+    lda WSB
+    sta WSD
+    lda WSB+1
+    sta WSD+1
+    ldx #4
+    jsr BIND
+    ldx #$0a
+XLAMB
+    stx TVSEXT
+XLAM
+    lda WSC+1
+    bne XLAMC
+    beq EVPOP
+XLAMD
+    tax
+    dey
+    lda (WSC),y
+    stx WSC+1
+    sta WSC
+XLAMC
+    ldy #0
+    lda (WSC),y
+    bmi SYNNED
+    jmp LAMERR
+
+SYNNED
+    iny
+    lda (WSC),y
+    sta ARG
+    iny
+    lda (WSC),y
+    sta ARG+1
+    jsr EVALU
+    ldy #4
+    lda (WSC),y
+    bne XLAMD
+EVPOP
+    jmp POP

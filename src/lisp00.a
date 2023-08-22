@@ -1,0 +1,208 @@
+	;; Filename: LISP00 - Symbol definitions
+
+	;; Set up origins
+
+;	We set this on the acme command line so we can easily make a version
+;	at a different address for generating the Tube relocation table
+;	LISVAL	=	$8000
+
+
+	VECVAL	=	LISVAL + $2400 ; $A400
+	IMAVAL	=	LISVAL + $2600 ; $A600
+	HILISP	=	$D700
+
+	*	=	LISVAL
+
+LISP
+
+				; ++++  Manifest constants
+
+	CHARF	=	$00	; Types of atom
+	NUMF	= 	$04
+	SUBRF	=	$08
+	FSUBRF	= 	$0C
+	LISTF	=	$80
+
+	CR	=	$0D
+	LF	=	$0A
+
+	WARMST	=	42
+	COLDST	=	0
+
+	VECABS	=	>VECVAL
+	IMABS	=	>IMAVAL
+	IMALEN	=	$12	; No. of pages to copy
+	ROMTOB	=	$C000
+	RELTAB	=	$B800	; Table of addresses to be changed
+
+				; ******************************
+				; Page zero vars start here
+				; ******************************
+
+	GCNO	=	$00	; GC vars
+	GARX	=	$02
+	GARRY	=	$03
+	GCA	=	$04
+	GABBY	=	$06
+	SA	=	$07
+	TOPDIP	=	$09
+	SD	=	$0A
+	DISPM	=	$0B
+	ERRCNT	=	$0D
+	TOPBIN	=	$0F
+	ERRNO	=	$11
+	LINEPP	=	$12
+	HANDLE	=	$13
+	NBUFF	=	$14
+	NIND	=	$19
+	LEVEL	=	$1A
+	OLDEXT	=	$1B
+	END	=	$1D
+	AA	=	$1E
+	AB	=	$20
+	YSAV	=	$22
+	REP	=	$23
+	LINENO	=	$25
+	TVS	=	$30
+	ARG	=	$30
+	BINDER	=	$32
+	TVSEXT	=	$33
+	WSA	=	$34
+	WSB	=	$36
+	WSC	=	$38
+	ARGA	=	$3A
+	ARGB	=	$3C
+	ARGC	=	$3E
+	ARGD	=	$40
+	ARGE	=	$42
+	ACL	=	$72	; Top of TVS
+	XTNDL	=	$74
+	AUXL	=	$76
+	SIGN	=	$78
+	ARETOP	=	$79
+	POINT	=	$7A
+	RELBS	=	POINT
+	ROMBS	=	POINT
+	CELL	=	$7C
+	RELOC	=	CELL
+	RAMBS	=	CELL
+	SP	=	$7E
+	SIZE	=	$82
+	WSD	=	$83
+	RETADD	=	$85
+	AD	=	$87
+	XPR	=	$89
+	DEPTH	=	$8B
+	LSBUFF	=	$8C
+	POPPY	=	$8D
+	TERMCH	=	$8E
+	ACIN	=	$8F
+	ARGINF	=	$90	; For OSARGS
+	OLDLEV	=	$97
+	CLISTR	=	$F2
+	BRKAD	=	$FD	; Break addr.
+	KBD	=	$FF	; Escape sets top bit
+
+				; ******************************
+				; Assorted buffers and workspace
+				; variables
+				; ******************************
+
+	BRKVEC	=	$0202	; Indirect error
+	FIRST	=	$0400
+	TUBE	=	$0401
+	ACL40	=	$0402
+	REM40	=	$0407
+	AUX40	=	$040c
+	TEMP40	=	$0411
+	IODCB	=	$0416
+	PWORD	=	$041b
+	GCTIME	=	$0420
+	TIMEW	=	$0425
+	MODEF	=	$042a
+	VECBOT	=	$042b
+	IMBOT	=	$042c
+	ZAVAL	=	IMBOT
+	NILVAL	=	IMBOT
+	LAMVAL	=	IMBOT
+	QUOVAL	=	IMBOT
+	TRUVAL	=	IMBOT
+	AREVAL	=	$042d
+	ESCHF	=	$042f
+	LSCHAR	=	$0430
+	STATYP	=	$0431	; Start type flag
+	MEMINV	=	$0432	; =$FF => GC in progress
+	RELOFF	=	$0433
+	GENCNT	=	$0434	; For GENSYM
+	OSINFO	=	$0438	; Buffer for OSFILE
+	IMBUF	=	$0600
+	NAMBUF	=	IMBUF
+	OSWBUF	=	IMBUF
+	DOSBUF	=	$0700	; CLI buffer
+	IN	=	DOSBUF
+
+				; ******************************
+
+				; GC tables use 1 byte per page
+				; Thus here the tables use:
+
+				; Table 1 : $0458 - $0527
+				; Table 2 : $0528 - $05F7
+
+				; This allows for an image
+				; running from $800 to $D7FF
+				; (i.e. suitable for the second
+				; processor)
+	
+				; The page no. is added to the
+				; address of the table
+
+				; ******************************
+
+	DL	=	$0450	; GC table 1
+	DH	=	$0520	; GC table 2
+	
+				; ******************************
+				; OS routines
+				; ******************************
+
+	OSFIND	=	$FFCE
+	OSBPUT	=	$FFD4
+	OSBGET	=	$FFD7
+	OSARGS	=	$FFDA
+	OSFILE	=	$FFDD
+	OSRDCH	=	$FFE0
+	OSASCI	=	$FFE3
+	OSCRLF	=	$FFE3
+	OSWRCH	=	$FFEE
+	OSWORD	=	$FFF1
+	OSBYTE	=	$FFF4
+	OSCLI	=	$FFF7
+
+				; (Change from original - these
+				; were just constants in the code)
+	
+	osbyte_acknowledge_escape              = 126
+	osbyte_enter_language                  = 142
+	osbyte_inkey                           = 129
+	osbyte_read_adc_or_get_buffer_status   = 128
+	osbyte_read_high_order_address         = 130
+	osbyte_read_himem                      = 132
+	osbyte_read_himem_for_mode             = 133
+	osbyte_read_oshwm                      = 131
+	osbyte_read_tube_presence              = 234
+	osfile_load                            = 255
+	osfile_save                            = 0
+	osfind_close                           = 0
+	osfind_open_output                     = 128
+	osword_read_clock                      = 1
+	osword_read_interval_timer             = 3
+	osword_read_io_memory                  = 5
+	osword_read_line                       = 0
+	osword_read_pixel                      = 9
+	osword_sound                           = 7
+	osword_write_clock                     = 2
+	service_star_help_command              = 9
+	service_unrecognised_star_command      = 4
+
+

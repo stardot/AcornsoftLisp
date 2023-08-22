@@ -1,0 +1,144 @@
+    ; Filename LISP15 - Version 2/4 image
+    
+    ; ******************************
+    ; Routines new to version 2
+    ; ******************************
+
+s_MODE
+    !byte CHARF, $0A
+    !word v_MODE
+    !word $0000
+    !text "MODE"
+s_USR
+    !byte CHARF, $09
+    !word v_USR
+    !word $0000
+    !text "USR"
+s_SOUND
+    !byte CHARF, $0B
+    !word v_SOUND
+    !word $0000
+    !text "SOUND"
+s_ENVELOPE
+    !byte CHARF, $0E
+    !word v_ENVELOPE
+    !word $0000
+    !text "ENVELOPE"
+s_GCTIME
+    !byte CHARF, $0C
+    !word v_GCTIME
+    !word $0000
+    !text "GCTIME"
+s_TIME
+    !byte CHARF, $0A
+    !word v_TIME
+    !word $0000
+    !text "TIME"
+s_RESET
+    !byte CHARF, $0B
+    !word v_RESET
+    !word $0000
+    !text "RESET"
+s_POINT
+    !byte CHARF, $0B
+    !word v_POINT
+    !word $0000
+    !text "POINT"
+s_ADVAL
+    !byte CHARF, $0B
+    !word v_ADVAL
+    !word $0000
+    !text "ADVAL"
+s_CLOCK
+    !byte CHARF, $0B
+    !word v_CLOCK
+    !word $0000
+    !text "CLOCK"
+s_BNOT
+    !byte CHARF, $0A
+    !word v_BNOT
+    !word $0000
+    !text "BNOT"
+s_BAND
+    !byte CHARF, $0A
+    !word v_BAND
+    !word $0000
+    !text "BAND"
+s_BOR
+    !byte CHARF, $09
+    !word v_BOR
+    !word $0000
+    !text "BOR"
+s_INKEY
+    !byte CHARF, $0B
+    !word v_INKEY
+    !word $0000
+    !text "INKEY"
+s_GENSYM
+    !byte CHARF, $0C
+    !word v_GENSYM
+    !word $0000
+    !text "GENSYM"
+v_MODE
+    !byte SUBRF, $01
+    !word $0000
+    !word MODEV
+v_USR
+    !byte SUBRF, $05
+    !word $0000
+    !word USRV
+v_SOUND
+    !byte SUBRF, $04
+    !word $0000
+    !word SOUNDV
+v_ENVELOPE
+    !byte SUBRF, $0E
+    !word $0000
+    !word ENVV
+v_GCTIME
+    !byte SUBRF, $00
+    !word $0000
+    !word GCTIMV
+v_TIME
+    !byte SUBRF, $00
+    !word $0000
+    !word TIMEV
+v_RESET
+    !byte SUBRF, $00
+    !word $0000
+    !word RESETV
+v_POINT
+    !byte SUBRF, $02
+    !word $0000
+    !word POINTV
+v_ADVAL
+    !byte SUBRF, $01
+    !word $0000
+    !word ADVALV
+v_CLOCK
+    !byte SUBRF, $00
+    !word $0000
+    !word CLOCKV
+v_BNOT
+    !byte SUBRF, $01
+    !word $0000
+    !word BNOTV
+v_BAND
+    !byte SUBRF, $00
+    !word $0000
+    !word BANDV
+v_BOR
+    !byte SUBRF, $00
+    !word $0000
+    !word BORV
+v_INKEY
+    !byte SUBRF, $01
+    !word $0000
+    !word INKEYV
+v_GENSYM
+    !byte SUBRF, $00
+    !word $0000
+    !word GNSYMV
+
+ATOP
+    !byte $00

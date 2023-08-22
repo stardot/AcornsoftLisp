@@ -1,0 +1,221 @@
+    ; Filename: LISP12 - Vectors
+    
+    ; ******************************
+    ; This file holds the vectored
+    ; core routines. These are
+    ; held in 2 pages immediately
+    ; preceding the image.
+    ; ******************************
+
+    * =	VECVAL
+
+VECTAB
+
+NULLV
+    jmp NULL
+PRINTV
+    jmp PRINT
+CONSV
+    jmp CONS
+EVALV
+    jmp EVAL
+CARV
+    jmp CAR
+EQV
+    jmp EQ
+SETQV
+    jmp SETQ
+SETV
+    jmp SET
+ATOMV
+    jmp ATOM
+READXV
+    jmp READX
+CDRV
+    jmp CDR
+PRINZV
+    jmp PRINZ
+CONDV
+    jmp COND
+QUOV
+    jmp QUO
+PROGNV
+    jmp PROGN
+LOOPV
+    jmp LOOP
+WHILEV
+    jmp WHILE
+LISTV
+    jmp LIST
+CAARV
+    jmp CAAR
+CADRV
+    jmp CADR
+CDARV
+    jmp CDAR
+CDDRV
+    jmp CDDR
+CAAARV
+    jmp CAAAR
+CAADRV
+    jmp CAADR
+CADARV
+    jmp CADAR
+CADDRV
+    jmp CADDR
+CDAARV
+    jmp CDAAR
+CDADRV
+    jmp CDADR
+CDDARV
+    jmp CDDAR
+CDDDRV
+    jmp CDDDR
+ANDV
+    jmp _AND
+ORV
+    jmp OR
+ERORLV
+    jmp ERRORL
+NUMPV
+    jmp NUMP
+ZEROPV
+    jmp ZEROP
+ONEPV
+    jmp ONEP
+MINUSPV
+    jmp MINUSP
+DUMPV
+    jmp DUMP
+LOADV
+    jmp LOAD
+PLUSV
+    jmp PLUS
+DIFFV
+    jmp DIFF
+MINUSV
+    jmp MINUS
+SUBRPV
+    jmp SUBRP
+TIMESV
+    jmp TIMES
+QUOTV
+    jmp QUOT
+REMV
+    jmp REM
+LESSPV
+    jmp LESSP
+SUBAV
+    jmp SUBA
+ADDAV
+    jmp ADDA
+RECLMV
+    jmp RECLAM
+RPLACAV
+    jmp RPLACA
+RPLACDV
+    jmp RPLACD
+CHARSV
+    jmp CHARS
+MESSNV
+    jmp MESSON
+GETV
+    jmp GET
+PUTV
+    jmp PUT
+REMPRV
+    jmp REMPR
+GTV
+    jmp GT
+GPLSTV
+    jmp GPLIST
+CHARPV
+    jmp CHARP
+LISTPV
+    jmp LISTP
+ASSOCV
+    jmp ASSOC
+UNTILV
+    jmp UNTIL
+FSBRPV
+    jmp FSUBRP
+ERCNV
+    jmp ERCN
+ERSETV
+    jmp ERRSET
+CALLV
+    jmp CALL
+PEEKV
+    jmp PEEK
+POKEV
+    jmp POKE
+OBLSTV
+    jmp OBLIST
+APPLYV
+    jmp APPLY
+MAPCRV
+    jmp MAPCAR
+MAPV
+    jmp MAP
+ASCIIV
+    jmp ASCII
+ORDNLV
+    jmp ORDINL
+EXPLDV
+    jmp EXPLOD
+IMPLDV
+    jmp IMPLOD
+GETCHV
+    jmp GETCHA
+STARV
+    jmp STAR
+MESSFV
+    jmp MESSOF
+IPLNEV
+    jmp IPLINE
+CLOSV
+    jmp CLOS
+OPEV
+    jmp OPE
+WRITZV
+    jmp WRITZ
+WRITV
+    jmp WRIT
+EOFV
+    jmp EOF
+VDUV
+    jmp VDU
+PRNTCV
+    jmp PRINTC
+PRINCV
+    jmp PRINC
+MODEV
+    jmp MODE
+USRV
+    jmp USR
+SOUNDV
+    jmp SOUND
+ENVV
+    jmp ENV
+GCTIMV
+    jmp GCTIM
+TIMEV
+    jmp TIME
+RESETV
+    jmp RESET
+CLOCKV
+    jmp CLOCK
+POINTV
+    jmp PVAL
+ADVALV
+    jmp ADVAL
+BNOTV
+    jmp BNOT
+BANDV
+    jmp BAND
+BORV
+    jmp BOR
+INKEYV
+    jmp INKEY
+GNSYMV
+    jmp GENSYM

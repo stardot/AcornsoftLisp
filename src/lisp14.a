@@ -1,0 +1,416 @@
+    ; Filename LISP14 - Second image file
+    
+    ; ******************************
+    ; The second LISP image file
+    ; ******************************
+
+s_PLUS
+    !byte CHARF, $0A
+    !word v_PLUS
+    !word $0000
+    !text "PLUS"
+s_DIFFERENCE
+    !byte CHARF, $10
+    !word v_DIFFERENCE
+    !word $0000
+    !text "DIFFERENCE"
+s_MINUS
+    !byte CHARF, $0B
+    !word v_MINUS
+    !word $0000
+    !text "MINUS"
+s_SUBRP
+    !byte CHARF, $0B
+    !word v_SUBRP
+    !word $0000
+    !text "SUBRP"
+s_TIMES
+    !byte CHARF, $0B
+    !word v_TIMES
+    !word $0000
+    !text "TIMES"
+s_QUOTIENT
+    !byte CHARF, $0E
+    !word v_QUOTIENT
+    !word $0000
+    !text "QUOTIENT"
+s_REMAINDER
+    !byte CHARF, $0F
+    !word v_REMAINDER
+    !word $0000
+    !text "REMAINDER"
+s_LESSP
+    !byte CHARF, $0B
+    !word v_LESSP
+    !word $0000
+    !text "LESSP"
+s_SUB1
+    !byte CHARF, $0A
+    !word v_SUB1
+    !word $0000
+    !text "SUB1"
+s_ADD1
+    !byte CHARF, $0A
+    !word v_ADD1
+    !word $0000
+    !text "ADD1"
+s_RECLAIM
+    !byte CHARF, $0D
+    !word v_RECLAIM
+    !word $0000
+    !text "RECLAIM"
+s_RPLACA
+    !byte CHARF, $0C
+    !word v_RPLACA
+    !word $0000
+    !text "RPLACA"
+s_RPLACD
+    !byte CHARF, $0C
+    !word v_RPLACD
+    !word $0000
+    !text "RPLACD"
+s_CHARS
+    !byte CHARF, $0B
+    !word v_CHARS
+    !word $0000
+    !text "CHARS"
+s_DOLLAR
+    !byte CHARF, $0C
+    !word v_DOLLAR
+    !word $0000
+    !text "DOLLAR"
+s_CR
+    !byte CHARF, $08
+    !word v_CR
+    !word $0000
+    !text "CR"
+s_MESSON
+    !byte CHARF, $0C
+    !word v_MESSON
+    !word $0000
+    !text "MESSON"
+s_MESSOFF
+    !byte CHARF, $0D
+    !word v_MESSOFF
+    !word $0000
+    !text "MESSOFF"
+s_GET
+    !byte CHARF, $09
+    !word v_GET
+    !word $0000
+    !text "GET"
+s_PUT
+    !byte CHARF, $09
+    !word v_PUT
+    !word $0000
+    !text "PUT"
+s_REMPROP
+    !byte CHARF, $0D
+    !word v_REMPROP
+    !word $0000
+    !text "REMPROP"
+s_GREATERP
+    !byte CHARF, $0E
+    !word v_GREATERP
+    !word $0000
+    !text "GREATERP"
+s_PLIST
+    !byte CHARF, $0B
+    !word v_PLIST
+    !word $0000
+    !text "PLIST"
+v_DOLLAR
+    !byte CHARF, $07
+    !word v_DOLLAR
+    !word $0000
+    !text "$"
+v_CR
+    !byte CHARF, $07
+    !word v_CR
+    !word $0000
+    !byte $0D
+s_CHARP
+    !byte CHARF, $0B
+    !word v_CHARP
+    !word $0000
+    !text "CHARP"
+s_LISTP
+    !byte CHARF, $0B
+    !word v_LISTP
+    !word $0000
+    !text "LISTP"
+s_ASSOC
+    !byte CHARF, $0B
+    !word v_ASSOC
+    !word $0000
+    !text "ASSOC"
+s_2A
+    !byte CHARF, $07
+    !word v_2A
+    !word $0000
+    !text "*"
+s_LPAR
+    !byte CHARF, $0A
+    !word v_LPAR
+    !word $0000
+    !text "LPAR"
+s_BLANK
+    !byte CHARF, $0B
+    !word v_BLANK
+    !word $0000
+    !text "BLANK"
+s_RPAR
+    !byte CHARF, $0A
+    !word v_RPAR
+    !word $0000
+    !text "RPAR"
+s_PERIOD
+    !byte CHARF, $0C
+    !word v_PERIOD
+    !word $0000
+    !text "PERIOD"
+v_LPAR
+    !byte CHARF, $07
+    !word v_LPAR
+    !word $0000
+    !text "("
+v_BLANK
+    !byte CHARF, $07
+    !word v_BLANK
+    !word $0000
+    !text " "
+v_RPAR
+    !byte CHARF, $07
+    !word v_RPAR
+    !word $0000
+    !text ")"
+v_PERIOD
+    !byte CHARF, $07
+    !word v_PERIOD
+    !word $0000
+    !text "."
+s_UNTIL
+    !byte CHARF, $0B
+    !word v_UNTIL
+    !word $0000
+    !text "UNTIL"
+s_FSUBRP
+    !byte CHARF, $0C
+    !word v_FSUBRP
+    !word $0000
+    !text "FSUBRP"
+s_ERRORCOUNT
+    !byte CHARF, $10
+    !word v_ERRORCOUNT
+    !word $0000
+    !text "ERRORCOUNT"
+s_ERRORSET
+    !byte CHARF, $0E
+    !word v_ERRORSET
+    !word $0000
+    !text "ERRORSET"
+s_CALL
+    !byte CHARF, $0A
+    !word v_CALL
+    !word $0000
+    !text "CALL"
+s_PEEK
+    !byte CHARF, $0A
+    !word v_PEEK
+    !word $0000
+    !text "PEEK"
+s_POKE
+    !byte CHARF, $0A
+    !word v_POKE
+    !word $0000
+    !text "POKE"
+s_OBLIST
+    !byte CHARF, $0C
+    !word v_OBLIST
+    !word $0000
+    !text "OBLIST"
+s_APPLY
+    !byte CHARF, $0B
+    !word v_APPLY
+    !word $0000
+    !text "APPLY"
+s_MAPC
+    !byte CHARF, $0A
+    !word v_MAPC
+    !word $0000
+    !text "MAPC"
+s_MAP
+    !byte CHARF, $09
+    !word v_MAP
+    !word $0000
+    !text "MAP"
+s_CHARACTER
+    !byte CHARF, $0F
+    !word v_CHARACTER
+    !word $0000
+    !text "CHARACTER"
+s_ORDINAL
+    !byte CHARF, $0D
+    !word v_ORDINAL
+    !word $0000
+    !text "ORDINAL"
+s_EXPLODE
+    !byte CHARF, $0D
+    !word v_EXPLODE
+    !word $0000
+    !text "EXPLODE"
+s_IMPLODE
+    !byte CHARF, $0D
+    !word v_IMPLODE
+    !word $0000
+    !text "IMPLODE"
+s_GETCHAR
+    !byte CHARF, $0D
+    !word v_GETCHAR
+    !word $0000
+    !text "GETCHAR"
+s_READLINE
+    !byte CHARF, $0E
+    !word v_READLINE
+    !word $0000
+    !text "READLINE"
+s_CLOSE
+    !byte CHARF, $0B
+    !word v_CLOSE
+    !word $0000
+    !text "CLOSE"
+s_OPEN
+    !byte CHARF, $0A
+    !word v_OPEN
+    !word $0000
+    !text "OPEN"
+s_WRITE0
+    !byte CHARF, $0C
+    !word v_WRITE0
+    !word $0000
+    !text "WRITE0"
+s_WRITE
+    !byte CHARF, $0B
+    !word v_WRITE
+    !word $0000
+    !text "WRITE"
+s_EOF
+    !byte CHARF, $09
+    !word v_EOF
+    !word $0000
+    !text "EOF"
+s_VDU
+    !byte CHARF, $09
+    !word v_VDU
+    !word $0000
+    !text "VDU"
+s_PRINTC
+    !byte CHARF, $0C
+    !word v_PRINTC
+    !word $0000
+    !text "PRINTC"
+s_PRINC
+    !byte CHARF, $0B
+    !word v_PRINC
+    !word $0000
+    !text "PRINC"
+v_ERRORCOUNT
+    !byte SUBRF, $00
+    !word $0000
+    !word ERCNV
+v_ERRORSET
+    !byte FSUBRF, $00
+    !word $0000
+    !word ERSETV
+v_CALL
+    !byte SUBRF, $01
+    !word $0000
+    !word CALLV
+v_PEEK
+    !byte SUBRF, $01
+    !word $0000
+    !word PEEKV
+v_POKE
+    !byte SUBRF, $02
+    !word $0000
+    !word POKEV
+v_OBLIST
+    !byte SUBRF, $00
+    !word $0000
+    !word OBLSTV
+v_APPLY
+    !byte SUBRF, $02
+    !word $0000
+    !word APPLYV
+v_MAPC
+    !byte SUBRF, $02
+    !word $0000
+    !word MAPCRV
+v_MAP
+    !byte SUBRF, $02
+    !word $0000
+    !word MAPV
+v_CHARACTER
+    !byte SUBRF, $01
+    !word $0000
+    !word ASCIIV
+v_ORDINAL
+    !byte SUBRF, $01
+    !word $0000
+    !word ORDNLV
+v_EXPLODE
+    !byte SUBRF, $01
+    !word $0000
+    !word EXPLDV
+v_IMPLODE
+    !byte SUBRF, $01
+    !word $0000
+    !word IMPLDV
+v_GETCHAR
+    !byte SUBRF, $00
+    !word $0000
+    !word GETCHV
+v_2A
+    !byte SUBRF, $01
+    !word $0000
+    !word STARV
+v_MESSOFF
+    !byte SUBRF, $01
+    !word $0000
+    !word MESSFV
+v_READLINE
+    !byte SUBRF, $00
+    !word $0000
+    !word IPLNEV
+v_CLOSE
+    !byte SUBRF, $01
+    !word $0000
+    !word CLOSV
+v_OPEN
+    !byte SUBRF, $02
+    !word $0000
+    !word OPEV
+v_WRITE0
+    !byte SUBRF, $01
+    !word $0000
+    !word WRITZV
+v_WRITE
+    !byte SUBRF, $01
+    !word $0000
+    !word WRITV
+v_EOF
+    !byte SUBRF, $01
+    !word $0000
+    !word EOFV
+v_VDU
+    !byte SUBRF, $00
+    !word $0000
+    !word VDUV
+v_PRINTC
+    !byte SUBRF, $00
+    !word $0000
+    !word PRNTCV
+v_PRINC
+    !byte SUBRF, $00
+    !word $0000
+    !word PRINCV

@@ -1,0 +1,375 @@
+    ; Filename: LISP06 - Print routines
+    
+    ; ******************************
+    ; Here there be the print
+    ; routines of various types:
+    ; ******************************
+    
+    ; **** Intercept return addr
+GETSSP
+    lda SP                                         ; Find SSP ret addr
+    sta POINT
+    lda SP+1
+    sta POINT+1
+    ldy #0
+    lda (POINT),y
+    clc
+    adc POINT
+    sta POINT
+    bcc STINC
+    inc POINT+1
+STINC
+    iny
+    lda (POINT),y
+    tay
+    dey
+    rts
+
+
+    ; **** WRITE
+WRIT
+    jsr GETSSP                                     ; Locate ret addr
+    lda (POINT),y
+    pha
+    lda #>WRITGO
+    sta (POINT),y
+    dey
+    lda (POINT),y
+    pha
+    lda #<WRITGO+2
+    sta (POINT),y
+WRITGO
+    jmp WRITZ
+
+    lda #$0d
+    jsr OUT
+    rts
+
+
+    ; **** WRITE0
+WRITZ
+    jsr FILG
+    lda #$ff
+    sta ESCHF
+    ldx #$0c
+    bne GENWRI
+
+    ; **** Error entry
+PRINTE
+    jsr STACK
+    jmp PRINTC
+
+
+    ; **** PRINT
+PRINT
+    lda #$ff                                       ; Put in esc char
+    bmi PRINT1
+
+    ; **** PRIN
+PRINZ
+    lda #$ff
+    bmi PRIN1
+
+    ; **** PRINTC
+PRINTC
+    lda #0
+PRINT1
+    sta ESCHF
+    jsr GETSSP
+    lda (POINT),y
+    pha
+    lda #>PRINGO
+    sta (POINT),y
+    dey
+    lda (POINT),y
+    pha
+    lda #<PRINGO+2
+    sta (POINT),y
+PRINGO
+    jmp PRINOK
+
+    jsr CROUT
+    rts
+
+
+    ; **** PRINC
+PRINC
+    lda #0
+PRIN1
+    sta ESCHF
+PRINOK
+    ldy #0
+    sty HANDLE
+    ldx #$0a
+GENWRI
+    lda #0
+    cpx TVSEXT                                     ; NO ARGS?
+    bcs NILFR
+PRON
+    lda TVS,x
+    sta ARG
+    inx
+    lda TVS,x
+    sta ARG+1
+    inx
+    stx XPR
+    jsr PRINB
+    ldx XPR
+    cpx TVSEXT
+    bcc PRON
+    lda TVS-2,x
+    sta ARG
+    lda ARG-1,x
+NILFR
+    jmp POPA
+
+
+    ; **** Get file handle
+FILG
+    lda ARGA+1
+    beq FILGER
+    ldy #0
+    lda (ARGA),y
+    cmp #NUMF
+    bne FILGER
+    ldy #2
+    lda (ARGA),y
+    sta HANDLE
+    rts
+
+FILGER
+    jmp NUER
+
+SAVAR
+    lda ARG                                        ; Saves ARG in WEB
+    sta WSB
+    lda ARG+1
+    sta WSB+1
+    rts
+
+CCPR
+    brk                                            ; Escape
+
+    !byte $0b
+    !text "Escape"
+    !byte 0
+
+
+    ; **** Just prints ARG
+PRINA
+    lda #0
+    sta ESCHF
+PRINB
+    jsr KBCHK                                      ; Check for escape
+    bne CCPR
+    lda ARG+1
+    bne NPN                                        ; NIL?
+    ldx #NILOFF
+    jmp MESSAG                                     ; 'NIL'
+
+
+    ; **** Main printer
+NPN
+    ldy #0
+    lda (ARG),y
+    bpl PATOMB                                     ; Atom or list?
+    lda #'('
+    jsr OUT
+    jsr STACK                                      ; Since recursive
+    lda ARG
+    sta WSA
+    lda ARG+1
+    sta WSA+1
+    bne NASTY
+
+    ; **** Print list
+PLIST
+    lda #' '
+    jsr OUT
+NASTY
+    jsr NXTARH
+    jsr PRINB
+    lda WSA+1
+    beq RPP
+    ldy #0
+    lda (WSA),y
+    bmi PLIST
+    lda WSA+1
+    sta ARG+1
+    lda WSA
+    sta ARG
+    ldx #$1c
+    jsr MESSAG
+    jsr PATOM
+RPP
+    lda #')'
+    jsr OUT
+    jmp POP
+
+BADAT
+    brk                                            ; Unknown atom type
+
+    !byte $0c
+    !text "Bad atom type"
+    !byte 0
+
+
+    ; **** Print atom
+PATOM
+    ldy #0
+    lda (ARG),y
+PATOMB
+    beq OKP                                        ; If char atom
+    cmp #NUMF
+    beq PNUM                                       ; If number atom
+    cmp #SUBRF
+    beq HASH                                       ; If subr atom
+    cmp #FSUBRF
+    bne BADAT
+    lda #'F'                                       ; Fsubr
+    jsr OUT
+HASH
+    ldx #SUBOFF
+    jsr MESSAG
+    ldy #5
+    lda (ARG),y
+    sta ACL+1                                      ; Print entry addr.
+    dey
+    lda (ARG),y
+    sta ACL
+    jmp PINT
+
+
+    ; *** Char atoms
+OKP
+    jsr GENDS
+    ldx #0
+    beq INCHP
+FOOT
+    lda (AA,x)
+    ldy ESCHF
+    bmi ESCFT
+FTOUT
+    jsr OUT
+    jmp INCHP
+
+ESCFT
+    ldy #6
+    jsr TERMQ
+    bne FTOUT
+    pha                                            ; Save character
+    lda #'!'                                       ; Escape in char
+    jsr OUT
+    pla
+    jmp FTOUT
+
+INCHP
+    jsr NEXTAA
+    bcc FOOT
+    rts
+
+
+    ; **** Print a number
+PNUM
+    ldy #2
+    lda (ARG),y
+    sta ACL
+    iny
+    lda (ARG),y
+    sta ACL+1
+    bpl PINT
+    lda #'-'
+    jsr OUT
+    ldx #ACL
+    ldy #0
+    jsr MD
+
+    ; **** Actual number printer
+PINT
+    ldx #5
+    lda #0
+CLDIV
+    sta NBUFF,x
+    dex
+    bpl CLDIV
+    sta XTNDL
+    sta XTNDL+1
+    sta AUXL+1
+    lda #$0a
+    sta AUXL
+NOMSIN
+    jsr DIV
+    lda XTNDL
+    sty XTNDL
+    ora #$30
+    ldx NIND
+    sta NBUFF,x
+    inc NIND
+    lda ACL
+    ora ACL+1
+    bne NOMSIN
+    ldx #4
+MDIGP
+    lda NBUFF,x
+    beq NDP
+    jsr OUT
+NDP
+    dex
+    bpl MDIGP
+    rts
+
+
+    ; **** Finds end of char atom
+GENDS
+    lda ARG
+    ldy #1                                         ; Char atom
+    clc
+    adc (ARG),y                                    ; AA +1 TO AB -1
+    dey
+    sta AB
+    lda ARG+1
+    adc #0
+    sta AB+1
+    lda #5
+    adc ARG
+    sta AA
+    lda ARG+1
+    adc #0
+    sta AA+1
+    rts
+
+
+    ; *** EOF
+EOF
+    jsr ALLNUM
+    ldy #2                                         ; Get file handle
+    lda (ARGA),y
+    tay                                            ; Y=file handle
+    ldx #ACL                                       ; Put pointer into ACL; X=zero page address for result
+    lda #0
+    jsr OSARGS                                     ; Get sequential file pointer into zero page address X (A=0)
+    ldx #ARGINF                                    ; File extent; X=zero page address for result
+    lda #2
+    jsr OSARGS                                     ; Get length of file into zero page address X (A=2)
+    ldx #2
+EOFCP
+    lda ACL,x
+    cmp ARGINF,x
+    bne EOFNO
+    dex
+    bpl EOFCP
+    jmp YES
+
+EOFNO
+    jmp NO
+
+
+    ; **** CLOSE
+CLOS
+    jsr ALLNUM
+    ldy #2
+    lda (ARGA),y
+    tay
+    lda #osfind_close                              ; Close file (A lost)
+    jsr OSFIND                                     ; Close one or all files
+    jmp NO

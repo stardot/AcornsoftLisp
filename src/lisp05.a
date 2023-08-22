@@ -1,0 +1,548 @@
+    ; Filename: LISP05 - Read routines
+    
+    ; ******************************
+    ; Here are the read routines
+    ; ******************************
+    
+    ; **** Get a character
+GTCHAR
+    ldy HANDLE
+    beq KEYCH
+    lda LSCHAR                                     ; From file
+    bpl RENEW
+    and #$7f
+    bpl REOLD
+RENEW
+    jsr OSBGET                                     ; Read a single byte from an open file Y
+REOLD
+    sta LSCHAR
+    rts
+
+KEYCH
+    txa                                            ; From screen
+    pha
+    ldx LSBUFF
+    cpx #$f0                                       ; => New line
+    bne NNL
+
+    ; **** Read a line
+    bit LEVEL                                      ; Prompt masked?
+    bpl READON
+    lda DEPTH
+    tax
+PRDEPT
+    beq READON
+    lda #'['
+    jsr OSWRCH                                     ; Write character 91
+    dex
+    bpl PRDEPT
+READON
+    ldx #<(INCB)
+    ldy #>(INCB)
+    lda #osword_read_line
+    jsr OSWORD                                     ; Read line; Read line from input stream (exits with C=1 if ESCAPE pressed)
+    bcc OKLINE
+RDCHER
+    brk                                            ; Escape
+
+    !byte $1a
+    !text "Escape"
+    !byte 0
+
+OKLINE
+    lda #$ff                                       ; Zero => newline
+    sta LSBUFF
+NNL
+    inc LSBUFF                                     ; Fetch char
+    pla
+    tax                                            ; RESTORE X
+    ldy LSBUFF
+    lda DOSBUF,y                                   ; Get char form buffer
+    cmp #$0d
+    bne XYZ
+    ldy #$f0
+    sty LSBUFF                                     ; New line next time
+XYZ
+    rts
+
+RSREAD
+    ldx #0
+    stx DEPTH
+    stx LINENO
+    stx HANDLE
+    ldx #$f0                                       ; Flag for new line
+    stx LSBUFF
+
+    ; **** READ
+READ
+    ldx #$ff
+    stx ARG+1                                      ; Flag for rubbish
+    jsr STACK
+NXCHAR
+    jsr GTCHAR
+RPT
+    cmp #$0d
+    beq NXCHAR
+    cmp #$0a
+    beq NXCHAR
+    cmp #' '
+    beq NXCHAR
+    cmp #'\''
+    bne PARQU
+    lda #<s_QUOTE                                  ; It's a quote
+    sta WSA
+    lda QUOVAL
+    sta WSA+1
+ODDAT
+    jsr READ                                       ; Entry for atoms
+    jsr ALPAIR                                     ; Get list cell for it
+    ldy #2
+    lda ARG+1
+    sta (POINT),y
+    dey
+    lda ARG
+    sta (POINT),y
+    lda POINT+1
+    sta WSB+1
+    lda POINT
+    sta WSB
+    jsr ALPAIR
+    lda POINT
+    sta ARG
+    lda POINT+1
+    sta ARG+1
+    ldy #4
+MORODD
+    lda TVSEXT,y
+    sta (ARG),y
+    dey
+    bne MORODD
+    jmp POP
+
+RDLJMP
+    jmp RDLIST
+
+PARQU
+    cmp #'('
+    beq RDLJMP
+    ldx #$ff                                       ; Some sort of atom
+    cmp #'!'                                       ; Escape
+    beq SPCATM
+    ldy #1                                         ; Ordinary char atom
+    jsr TERMQ
+    bne NORMAL
+QUEER
+    brk                                            ; Syntax error
+
+    !byte 8
+    !text "Read syntax"
+    !byte 0
+
+SPCATM
+    jsr GTCHAR                                     ; Escaped char
+NORMAL
+    inx                                            ; Fetch chars
+    sta OSWBUF,x
+    jsr GTCHAR
+    cmp #'!'
+    beq SPCATM
+    ldy #5
+    jsr TERMQ
+    bne NORMAL
+    jsr PUTBCK
+
+    ; ******************************
+    ; Here check if numeric. Find
+    ; or set up char atom.
+    ; ******************************
+    stx END
+    jsr MAKNUM
+    bcc AMADE
+TRYCHR
+    jsr MATCH
+AMADE
+    lda POINT
+    sta ARG
+    lda POINT+1
+    sta ARG+1
+    jmp POP
+
+
+    ; *** Read a list
+RDLIST
+    lda #0
+    sta WSA+1
+    sta WSB+1
+    inc DEPTH
+    jsr LCHAR
+    cmp #'.'
+    bne LON
+    jsr GTCHAR
+DOTTY
+    brk                                            ; Dot syntax
+
+    !byte 9
+    !text "Dot syntax"
+    !byte 0
+
+LON
+    jsr READ
+    jsr ALPAIR
+    ldx POINT
+    lda POINT+1
+    ldy WSB+1                                      ; First element?
+    beq NEWLST
+    ldy #4
+    sta (WSB),y
+    txa
+    dey
+    sta (WSB),y
+    lda POINT+1
+    bne ALLIST                                     ; Always taken
+NEWLST
+    stx WSA
+    sta WSA+1
+ALLIST
+    stx WSB
+    sta WSB+1
+    ldy #1
+    lda ARG
+    sta (WSB),y
+    iny
+    lda ARG+1
+    sta (WSB),y
+    jsr LCHAR
+    cmp #'.'
+    bne LON
+    jsr GTCHAR                                     ; Dotted pair at end
+    jsr READ
+    ldy #4
+    lda ARG+1
+    sta (WSB),y
+    dey
+    lda ARG
+    sta (WSB),y
+    jsr LCHAR                                      ; Shouldn't return
+    jmp DOTTY                                      ; Dot syntax error
+
+READX
+    jsr FILGB
+    jsr READ
+    jmp POP
+
+
+    ; **** Look for terminators
+TERMQ
+    cmp TERMS,y
+    beq TERRTS
+    dey
+    bpl TERMQ
+TERRTS
+    rts
+
+
+    ; **** Next arg from WSA's list
+NXTARG
+    lda WSA+1
+    bne NXTARH
+ARGERR
+    jmp FSARG
+
+NXTARH
+    ldy #0
+    lda (WSA),y
+    bpl ARGERR
+    iny
+    lda (WSA),y
+    sta ARG
+    iny
+    lda (WSA),y
+    sta ARG+1
+    iny
+    lda (WSA),y
+    tax
+    iny
+    lda (WSA),y
+    stx WSA
+    sta WSA+1
+    rts
+
+LCHAR
+    jsr GTCHAR
+    cmp #' '
+    beq LCHAR
+    cmp #$0d
+    beq LCHAR
+    cmp #')'
+    beq LISTND
+PUTBCK
+    pha
+    ldy HANDLE
+    bne EXFILE                                     ; Reverse file pointer
+    ldy LSBUFF
+    bpl MIDBUF
+    lda #$0d                                       ; Fudge CR into buffer
+    sta DOSBUF
+    ldy #0
+MIDBUF
+    dey
+    sty LSBUFF
+    pla
+    rts
+
+EXFILE
+    lda LSCHAR                                     ; COS version
+    ora #$80
+    sta LSCHAR
+    pla
+    rts
+
+LISTND
+    dec DEPTH
+    lda WSA
+    sta ARG
+    lda WSA+1
+    sta ARG+1
+    pla
+    pla
+    jmp POP
+
+
+    ; **** Make number in POINT
+MAKNUM
+    ldx #0                                         ; Text from IMBUF
+    stx SIGN
+    stx ACL
+    stx ACL+1
+    lda OSWBUF,x
+    cmp #'-'
+    bne PLUSS
+    sta SIGN
+    inx
+    ldy END
+    cpy #0
+    beq MKRTS
+PLUSS
+    lda OSWBUF,x
+    sec
+    sbc #$30
+    cmp #$0a
+    bcs MKRTS                                      ; Not a digit
+    sta ACIN
+    ldy #0
+    lda ACL                                        ; *10 now
+    asl
+    sta ACL
+    rol ACL+1                                      ; That's * 2
+    bcs MKOVFL                                     ; Overflow
+    asl
+    bcc YIA
+    ldy #2
+YIA
+    asl
+    bcc YIB
+    iny
+    clc
+YIB
+    adc ACIN
+    bcc YIC
+    iny
+    clc
+YIC
+    adc ACL
+    sta ACL
+    bcc YID
+    iny
+YID
+    lda ACL+1
+    asl
+    bcs MKOVFL
+    asl
+    bcs MKOVFL
+    adc ACL+1
+    sta ACL+1
+    bcs MKOVFL
+    tya
+    adc ACL+1
+    bcs MKOVFL
+    sta ACL+1
+    cpx END
+    inx
+    bcc PLUSS                                      ; Any more digits?
+    lda SIGN
+    beq PLUSSS
+    ldy #0                                         ; Reverse sign if -ve
+    ldx #<ACL
+    jsr MD
+    ldx ACL+1
+    bmi NTOVFL
+MKOVFL
+    sec
+    rts                                            ; Not number
+
+PLUSSS
+    ldx ACL+1
+    bmi MKOVFL
+NTOVFL
+    jsr ALNUM
+    ldy #3
+    lda ACL+1
+    sta (POINT),y
+    dey
+    lda ACL
+    sta (POINT),y
+    clc
+MKRTS
+    rts
+
+NEXTAD
+    inc AD
+    bne NEXTAA
+    inc AD+1
+NEXTAA
+    inc AA
+    bne NAAB
+    inc AA+1
+NAAB
+    lda AA
+    cmp AB
+    lda AA+1
+    sbc AB+1
+    rts
+
+
+    ; ******************************
+    ; MATCH tries to find a string
+    ; to match the string in IMBUF.
+    ; If it cannot it makes up a
+    ; new atom.
+    ; ******************************
+LETTER
+    sta OSWBUF
+    ldy #0
+    sty END
+MATCH
+    jsr SETCEL
+    inc END
+    lda END
+    clc
+    adc #6
+    sta ACL+1
+    bcc CHKCLL
+LONGER
+    brk                                            ; String too long
+
+    !byte $0a
+    !text "String too long"
+    !byte 0
+
+CHKCLL
+    ldy #0
+CHKCLM
+    lda (CELL),y
+    bne NXTCLL
+    iny
+    lda (CELL),y
+    cmp ACL+1
+    bne NXTCLL
+    lda CELL
+    adc #5
+    sta AD
+    lda CELL+1
+    adc #0
+    sta AD+1
+    ldy END
+    bpl TESTY
+MCOP
+    dey
+    lda OSWBUF,y                                   ; Chars the same?
+    cmp (AD),y
+    bne NXTCLL
+    tya
+TESTY
+    bne MCOP
+    lda CELL+1
+    ldx CELL                                       ; NIL?
+    stx POINT
+    cpx #<s_NIL
+    bne BOX
+    sbc NILVAL
+    beq BOX
+    lda CELL+1
+BOX
+    sta POINT+1
+    rts                                            ; It's found
+
+NXTCLL
+    jsr NXCELL
+    bcc CHKCLM
+    lda ACL+1
+    jsr ALCHAR
+    lda POINT
+    clc
+    adc #6
+    sta AD
+    lda POINT+1
+    adc #0
+    sta AD+1
+    ldy END
+    bpl TOSTIG
+MCAP
+    dey
+    lda OSWBUF,y
+    sta (AD),y
+    tya
+TOSTIG
+    bne MCAP
+    rts                                            ; New cell made
+
+NXCELL
+    ldy #0                                         ; Given pointer
+    lda (CELL),y                                   ; in CELL, finds next
+    clc                                            ; CELL
+    bmi SIX
+    cmp #8
+    bcs SIX
+    iny
+    lda (CELL),y
+    dey
+    beq GOT
+SIX
+    lda #5
+GOT
+    adc CELL
+    sta CELL
+    bcc HCOK
+    inc CELL+1
+HCOK
+    cmp AREVAL
+    lda CELL+1
+    sbc AREVAL+1
+    rts
+
+FILGB
+    ldx TVSEXT
+    cpx #$0c
+    lda #0
+    bcc ZIP
+FILGC
+    jsr ALLNUM
+    ldy #2
+    lda (ARGA),y
+ZIP
+    sta HANDLE
+    rts
+
+IPLINE
+    jsr FILGB
+    ldx #$ff
+MOLIN
+    jsr GTCHAR
+    inx
+    sta OSWBUF,x
+    cmp #$0d
+    bne MOLIN
+    dex                                            ; Don't want CR at end.
+    stx END
+    jmp TRYCHR
+

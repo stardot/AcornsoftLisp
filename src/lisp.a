@@ -1,0 +1,35 @@
+    ;; *******************************
+    
+    ;; LISP for Acorn System 3 & 4
+    
+    ;; First version May 1979
+    ;; Revised on 23/2/81 DJD
+    ;; Revised for BBC 19/3/82 JPB
+    ;; Relocation started 5/7/82
+    ;; Version 2 for ROM 30/7/82
+    ;; Version 4 for ROM start 9/8/83 RMT
+    ;; Converted to MASM format 12/8/83
+
+    ;; Recovered by disassembly of ROM version 4.06 and
+    ;; comments merged from listing June 2023 TobyLobster
+    ;; Further restored August 2023 RMT
+	
+    ;; *******************************
+
+    !src "lisp00.a"
+    !src "lisp01.a"
+    !src "lisp02.a"
+    !src "lisp03.a"
+    !src "lisp04.a"
+    !src "lisp05.a"
+    !src "lisp06.a"
+    !src "lisp07.a"
+    !src "lisp08.a"
+    !src "lisp09.a"
+    !src "lisp10.a"
+    !src "lisp11.a"
+    !src "lisp12.a"
+    !src "lisp13.a"
+    !src "lisp14.a"
+    !src "lisp15.a"
+    

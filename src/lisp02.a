@@ -1,0 +1,94 @@
+    ; Filename: LISP02 - Tables
+    
+    ; ******************************
+    ; These are LISP's tables
+    ; ******************************
+    
+				; **** The text messages
+	
+TEXT
+    !text $0d, $0d, "Evaluate :", $80+' '
+VALTXT
+    !text $0d, "Value is :", $80+' '
+NILTXT
+    !text "NI", $80+'L'
+DOTTXT
+    !text " .", $80+' '
+INSTXT
+    !text $0d, "Insufficient memor", $80+'y'
+GCTXT
+    !text $0d, "G.C. ", $80+'#'
+COLTXT
+    !text " Bytes collected,", $80+' '
+FRTXT
+    !text " Bytes free", $80+$0d
+SUBTXT
+    !text "Subr", $80+'#'
+ERRTXT
+    !text $0d, "Error number", $80+' '
+ARGTXT
+    !text $0d, "Arg :", $80+' '
+WRMTXT
+    !text $0d, "Warm or cold start (W/C) ?", $80+' '
+HLPTXT
+    !text $0d, "LISP 4.06", $80+$0d
+
+				; Set up message offsets
+	
+EVOFF   = TEXT   - TEXT
+VALOFF  = VALTXT - TEXT
+NILOFF  = NILTXT - TEXT
+DOTOFF  = DOTTXT - TEXT
+INSOFF  = INSTXT - TEXT
+GCOFF   = GCTXT  - TEXT
+COLOFF  = COLTXT - TEXT
+FROFF   = FRTXT  - TEXT
+SUBOFF  = SUBTXT - TEXT
+ERROFF  = ERRTXT - TEXT
+ARGOFF  = ARGTXT - TEXT
+WRMOFF  = WRMTXT - TEXT
+HLPOFF  = HLPTXT - TEXT
+	
+    ; **** Command lines
+GOSTR
+    !text "GO D700"		; D700 is HILISP
+    !byte $0d
+LISTR
+    !text "LISP"
+    !byte $0d
+
+    ; **** Readline control block
+INCB
+    !word IN			                   ; Buffer address for input (2 bytes)
+    !byte $7f                                      ; Max line length; Maximum line length
+    !byte $20                                      ; Min. acceptable character value
+    !byte $7f                                      ; Max. acceptable character value
+
+    ; **** Terminators
+TERMS
+    !text "). ("
+    !byte $0d, $0a
+    !text "!'"
+	
+    ; **** CAR/CDR table
+CXXXR
+	!byte 0, 2, 2, 2	;CAAAR
+	!byte 0, 4, 2, 2	;CAADR
+	!byte 0, 2, 4, 2	;CADAR
+	!byte 0, 4, 4, 2	;CADDR
+	!byte 0, 2, 2, 4	;CDAAR
+	!byte 0, 4, 2, 4	;CDADR
+	!byte 0, 2, 4, 4	;CDDAR
+	!byte 0, 4, 4, 4	;CDDDR
+
+    ; **** Table of CHARS lengths
+LENTAB
+    !byte   3,   6,   9, $0a,   0
+
+    ; **** Untraceable errors
+CATTAB
+    !byte   0,   1,   2, $0b, $0c, $ff
+
+    ; **** Zero time
+TIMZER
+    !byte 0, 0, 0, 0, 0                            ; Five byte clock value (low byte to high byte)

@@ -1,0 +1,631 @@
+    ; Filename: LISP10 - Garbage collector
+    
+    ; ******************************
+    ; Garbage collector file.
+    ; ******************************
+    
+    ; **** Set CELL to image start
+SETCEL
+    lda #<WSBOT
+    sta CELL
+    lda IMBOT
+    sta CELL+1
+    rts
+
+
+    ; **** Clear all G.C. flags
+CLEARF
+    jsr SETCEL
+    ldy #0
+RZ
+    lda (CELL),y
+    and #$fc
+    sta (CELL),y
+    jsr NXCELL
+    bcc RZ
+    rts
+
+
+    ; ******************************
+    ; Register a set of cells,
+    ; starting from the one in GCA.
+    ; ******************************
+REGCDR
+    lda (GCA,x)
+REGPIN
+    ror
+    bcs REGRTS
+    ror
+    bcc VIRGIN
+    ldy #4
+    rol
+    sec
+    rol
+    sta (GCA,x)
+    bmi LIN
+    iny
+LIN
+    lda (GCA),y
+    beq REGRTS
+    tax
+    dey
+BOT
+    lda (GCA),y
+    sta GCA
+    stx GCA+1
+REGIS1
+    ldx #0
+REGISU
+    lda (GCA,x)
+    bmi REGPIN
+    cmp #4
+    bcc REGPIN
+    ora #1
+    sta (GCA,x)
+    ldy #3
+    cmp #SUBRF
+    bcs LIN
+REGRTS
+    rts
+
+REGIST
+    lda GCA+1                                      ; This code added by RMT
+    cmp ARETOP                                     ; 12/9/83 to prevent bug
+    bcc REGIS1                                     ; probably caused by ARG
+    rts                                            ; being &FFxx
+
+VIRGIN
+    clv
+    ldy #2
+    sec
+    rol
+    asl
+    sta (GCA,x)
+    bmi LINJ
+    iny
+LINJ
+    lda (GCA),y
+    beq REGCDR
+    tax
+    dey
+    dec TOPDIP
+    bpl STOCK
+    inc TOPDIP
+    beq BOT                                        ; Always taken
+STOCK
+    lda GCA+1
+    pha
+    lda GCA
+    pha
+    lda (GCA),y
+    stx GCA+1
+    sta GCA
+    jsr REGIST
+    inc TOPDIP
+    pla
+    sta GCA
+    pla
+    sta GCA+1
+    jmp REGCDR
+
+
+    ; **** Garbage Collector entry
+RUBBSH
+    stx GARX
+    sty GARRY
+    lda #$ff                                       ; Mark memory invalid
+    sta MEMINV
+    lda #4                                         ; Start timing
+    jsr ZERTIM                                     ; Zero timer
+    lda AREVAL
+    sta OLDEXT
+    lda AREVAL+1
+    sta OLDEXT+1
+    inc GCNO
+    bne HGCA
+    inc GCNO+1
+HGCA
+    lda LEVEL
+    and #2
+    beq NOMESA
+    lda HANDLE
+    pha                                            ; Save I/O file handle
+    ldx #GCOFF                                     ; 'G.C. no.'
+    jsr MESSAH
+    lda GCNO
+    sta ACL                                        ; Print no. of G.C.'s
+    lda GCNO+1
+    sta ACL+1
+    jsr PINT
+    pla
+    sta HANDLE
+NOMESA
+    jsr CLEARF
+    lda #$20
+    sta TOPDIP                                      ; Stack limit
+    ldx TVSEXT
+COLLEC
+    lda TVS-1,x
+    beq SREG                                       ; Register off WSA etc.
+CREG
+    sta GCA+1
+    lda TVS-2,x
+    sta GCA
+    stx CELL
+    jsr REGIST
+    ldx CELL
+SREG
+    dex
+    dex
+    cpx #6
+    bcs COLLEC
+    lda ARG+1
+    beq STRETH
+    sta GCA+1
+    lda ARG
+    sta GCA
+    jsr REGIST
+STRETH
+    lda SP                                         ; Register off stack
+    sta CELL
+    lda SP+1
+    sta CELL+1
+    cmp ARETOP
+    bcs LOOKW
+STUP
+    ldy #0
+    lda (CELL),y
+    beq BOWDUN
+    tay
+STCOLL
+    jsr SPREG
+    bne STCOLL
+    lda (CELL),y
+BOWDUN
+    sec
+    adc CELL
+    sta CELL
+    bcc SPOCK
+    inc CELL+1
+SPOCK
+    lda (CELL),y
+    tay
+    jsr SPREG
+    dey                                            ; Avoid the return addr
+    dey
+STCOL
+    jsr SPREG
+    bne STCOL
+    lda (CELL),y
+    sec
+CXH
+    adc CELL
+    bcc CXHB
+    inc CELL+1
+CXHB
+    sta CELL
+    lda CELL+1
+    cmp ARETOP
+    bcc STUP
+LOOKW
+    jsr SETCEL                                     ; Now off whole
+    bit CXH                                        ; Set overflow
+    php
+MORWS
+    ldx #0
+    lda (CELL,x)
+    cmp #$82
+    beq DOREG
+    cmp #2
+    beq DOREG                                      ; Register if half
+    bcs NOREG                                      ; finished,
+    jsr USEFUL
+    beq NOREG
+    lda (CELL,x)
+DOREG
+    ldy CELL                                       ; or if char atom
+    sty GCA
+    ldy CELL+1
+    sty GCA+1
+    plp
+    jsr REGPIN
+    php
+NOREG
+    jsr NXCELL
+    bcc MORWS
+    plp
+    bvc LOOKW                                      ; There's more
+
+    ; ******************************
+    ; Having registered the cells,
+    ; now to move the memory about
+    ;    First calculate the change
+    ; in position of all the blocks
+    ; ******************************
+    jsr SETCEL
+    ldy #0
+    sty DISPM
+    sty DISPM+1
+ML
+    lda (CELL),y
+    lsr
+    bcc SETMIN
+    jsr NXCELL
+    bcc ML
+    jmp CLUPB
+
+SETMIN
+    lda CELL+1
+    sta AD+1
+    lda CELL
+    sta AD                                         ; Top of static
+DLOP
+    ldy #2
+    lda DISPM
+    sta (CELL),y
+    iny
+    lda DISPM+1
+    sta (CELL),y
+    lda CELL
+    sta AA
+    lda CELL+1
+    sta AA+1
+STFR
+    jsr NXCELL
+    bcs TADJ
+    lda (CELL),y
+    lsr
+    bcc STFR
+    lda CELL
+    sta AB
+    sbc AA
+    tax
+    lda CELL+1
+    sta AB+1
+    sbc AA+1
+    tay
+    txa
+    clc
+    adc DISPM
+    sta DISPM
+    tya
+    adc DISPM+1
+    sta DISPM+1
+    ldy #0
+    lda (CELL),y
+    lsr
+STUSE
+    rol
+    clc
+    bmi SIXG
+    cmp #SUBRF
+    bcs SIXG
+    iny
+    lda (CELL),y
+    dey
+    bcc ADDIN
+SIXG
+    lda #5
+ADDIN
+    adc CELL
+    sta CELL
+    bcc NHCIQ
+    ldx CELL+1
+    inc CELL+1
+    lda DISPM
+    sta DL,x
+    lda DISPM+1
+    sta DH,x
+    lda CELL
+NHCIQ
+    cmp AREVAL
+    lda CELL+1
+    sbc AREVAL+1
+    bcs TADJ
+    lda (CELL),y
+    lsr
+    bcs STUSE
+    bcc DLOP
+TADJ
+    lda DISPM
+    sta TOPDIP
+    lda DISPM+1
+    sta TOPDIP+1
+
+    ; ******************************
+    ; Having calculated the
+    ; dispacements, now to alter
+    ; the pointers
+    ; ******************************
+ADJUSS
+    lda SP                                         ; Adjust stack
+    sta CELL
+    lda SP+1
+    sta CELL+1
+ASP
+    ldy #0
+    sty GCA
+    lda (CELL),y
+    beq NOLEAP
+    pha
+    tay
+    jsr AJCELL
+    pla
+NOLEAP
+    sec
+    adc CELL
+    sta CELL
+    bcc LUCK
+    inc CELL+1
+LUCK
+    lda CELL+1
+    cmp ARETOP
+    bcc ASP
+    lda #BINDER                                    ; Adjust workspace
+    sta CELL
+    lda #0
+    sta CELL+1
+    ldy TVSEXT
+    dey
+    dey
+    dey
+    jsr AJCELL
+    lda #TVS-1
+    sta CELL
+    ldy #2
+    jsr AJCELL
+    jsr SETCEL
+    ldy #0                                         ; Revises pointer over
+ADJUT
+    lda (CELL),y                                   ; whole of
+    lsr
+    bcc NXADJ
+    ldy #4
+    asl
+    bmi LICE
+    iny
+    cmp #SUBRF
+    bcs LICE
+    cmp #NUMF
+    bcs NXADJ
+LICE
+    jsr AJCELL
+NXADJ
+    jsr NXCELL
+    bcc ADJUT
+
+    ; ******************************
+    ; Now move the blocks about
+    ; ******************************
+    lda AD                                         ; AD has top of static
+    sta CELL                                       ; space
+    lda AD+1
+    sta CELL+1
+SAL
+    jsr NXCELL
+    bcs CLUP
+    lda (CELL),y
+    lsr
+    bcc SAL
+    lda CELL
+    sta AA
+    lda CELL+1
+    sta AA+1
+MOLE
+    jsr NXCELL
+    bcs ABGO
+    lda (CELL),y
+    lsr
+    bcs MOLE
+ABGO
+    lda CELL
+    sta AB
+    sec
+    sbc AA
+    sta GCA                                        ; PUT LENGTH IN GCA
+    lda CELL+1
+    sta AB+1
+
+    ; ******************************
+    ; Fast move routine
+    ; ******************************
+    ldy #0
+    sbc AA+1
+    beq BITMOV
+    sta GCA+1
+MORMOV
+    lda (AA),y
+    sta (AD),y
+    iny
+    bne MORMOV
+    inc AA+1
+    inc AD+1
+    dec GCA+1
+    bne MORMOV
+BITMOV
+    lda (AA),y
+    sta (AD),y
+    iny
+    cpy GCA
+    bcc BITMOV
+    bne SAL                                        ; If GCA is zero loop
+    tya
+    clc
+    adc AD
+    sta AD
+    bcc FINMOV
+    inc AD+1
+FINMOV
+    jmp SAL
+
+
+    ; ******************************
+    ; Now to calculate the gain in
+    ; cells etc.
+    ; ******************************
+CLUP
+    lda AD
+    sta AREVAL
+    lda AD+1
+    sta AREVAL+1
+CLUPB
+    jsr CLEARF
+    sec
+    lda OLDEXT
+    sbc AREVAL
+    sta ACL
+    sta SA
+    lda OLDEXT+1
+    sbc AREVAL+1
+    sta ACL+1
+    sta SA+1
+    lda LEVEL
+    and #1
+    beq NOMESC
+    lda HANDLE                                     ; Save file handle
+    pha
+    lda #0
+    sta HANDLE
+    jsr CROUT
+    lda #'^'
+    jsr OUT
+    jsr PINT
+    ldx #COLOFF
+    jsr MESSAG                                     ; ' Bytes collected '
+    sec
+    lda SP
+    sbc AREVAL
+    sta ACL
+    lda SP+1
+    sbc AREVAL+1
+    sta ACL+1
+    jsr PINT
+    ldx #FROFF
+    jsr MESSAG                                     ; ' Bytes free<CR>'
+    pla
+    sta HANDLE                                     ; Restore file handle
+NOMESC
+    lda #osword_read_interval_timer
+    ldx #<(TIMEW)
+    ldy #>(TIMEW)
+    jsr OSWORD                                     ; Read timer; Read interval timer
+    clc
+    ldy #0
+    ldx #5
+MORTIM
+    lda TIMEW,y
+    adc GCTIME,y
+    sta GCTIME,y
+    iny
+    dex
+    bpl MORTIM
+    ldx GARX
+    ldy GARRY
+    lda #0
+    sta MEMINV
+    lda SA
+    ora SA+1
+    rts
+
+AJCELL
+    lda (CELL),y
+    dey
+    cmp AD+1
+    bcc NXPR
+    cmp ARETOP
+    bcs NXPR
+    cmp AB+1                                       ; Bottom of top block
+    bcc ONW
+    sta GCA+1
+    bne SPECS
+    sta SA+1
+    lda (CELL),y
+    cmp AB
+    bcc ONX
+    bcs SPECTR
+SPECS
+    lda (CELL),y
+SPECTR
+    sbc TOPDIP
+    tax
+    lda GCA+1
+    sbc TOPDIP+1
+    bne CHUGB
+ONW
+    sta GCA+1
+    sta SA+1
+    lda (CELL),y
+ONX
+    tax
+    sty GABBY
+    tay
+    lda (GCA),y
+    lsr
+GCAON
+    rol
+    clc
+    bmi SIXP
+    cmp #SUBRF
+    bcs SIXP
+    tya
+    iny
+    beq PAGDIQ
+    adc (GCA),y
+    bcs PAGDIP
+    bcc ADDOUT
+SIXP
+    tya
+    adc #5
+    bcs PAGDIP
+ADDOUT
+    tay
+    lda (GCA),y
+    lsr
+    bcs GCAON
+    sty SA
+    ldy #2
+    txa
+    sec
+    sbc (SA),y
+    tax
+    lda GCA+1
+    iny
+    sbc (SA),y
+    bcs CHUG                                       ; Always taken
+PAGDIQ
+    sec
+PAGDIP
+    ldy GCA+1
+    txa
+    sbc DL,y
+    tax
+    tya
+    sbc DH,y
+CHUG
+    ldy GABBY
+CHUGB
+    iny
+    sta (CELL),y
+    dey
+    txa
+    sta (CELL),y
+NXPR
+    dey
+    cpy #2
+    bcs AJCELL
+    rts
+
+SPREG
+    lda (CELL),y                                   ; Stack register
+    beq NULBOW
+    sta GCA+1
+    sty GABBY
+    dey
+    lda (CELL),y
+    sta GCA
+    jsr REGIST
+    ldy GABBY
+NULBOW
+    dey
+    dey
+    rts

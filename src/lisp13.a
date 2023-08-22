@@ -1,0 +1,495 @@
+    ; Filename LISP13 - First image file
+    
+    ; ******************************
+    ; The first LISP image file
+    ; ******************************
+
+    * =	IMAVAL
+IMAGE
+
+AREEXT
+    !word ATOP
+
+WSBOT
+
+s_UNDEFINED
+    !byte CHARF, $0F
+    !word s_UNDEFINED
+    !word s_UNDEFINED
+    !text "UNDEFINED"
+s_T
+    !byte CHARF, $07
+    !word s_T
+    !word $0000
+    !text "T"
+s_LAMBDA
+    !byte CHARF, $0C
+    !word s_LAMBDA
+    !word $0000
+    !text "LAMBDA"
+s_NIL
+    !byte CHARF, $09
+    !word $0000
+    !word $0000
+    !text "NIL"
+s_QUOTE
+    !byte CHARF, $0B
+    !word v_QUOTE
+    !word $0000
+    !text "QUOTE"
+s_NULL
+    !byte CHARF, $0A
+    !word v_NULL
+    !word $0000
+    !text "NULL"
+s_PRINT
+    !byte CHARF, $0B
+    !word v_PRINT
+    !word $0000
+    !text "PRINT"
+s_CONS
+    !byte CHARF, $0A
+    !word v_CONS
+    !word $0000
+    !text "CONS"
+s_EVAL
+    !byte CHARF, $0A
+    !word v_EVAL
+    !word $0000
+    !text "EVAL"
+s_CAR
+    !byte CHARF, $09
+    !word v_CAR
+    !word $0000
+    !text "CAR"
+s_EQ
+    !byte CHARF, $08
+    !word v_EQ
+    !word $0000
+    !text "EQ"
+s_SETQ
+    !byte CHARF, $0A
+    !word v_SETQ
+    !word $0000
+    !text "SETQ"
+s_SET
+    !byte CHARF, $09
+    !word v_SET
+    !word $0000
+    !text "SET"
+s_ATOM
+    !byte CHARF, $0A
+    !word v_ATOM
+    !word $0000
+    !text "ATOM"
+s_READ
+    !byte CHARF, $0A
+    !word v_READ
+    !word $0000
+    !text "READ"
+s_CDR
+    !byte CHARF, $09
+    !word v_CDR
+    !word $0000
+    !text "CDR"
+s_PRIN
+    !byte CHARF, $0A
+    !word v_PRIN
+    !word $0000
+    !text "PRIN"
+s_COND
+    !byte CHARF, $0A
+    !word v_COND
+    !word $0000
+    !text "COND"
+v_NULL
+    !byte SUBRF, $01
+    !word $0000
+    !word NULLV
+v_PRINT
+    !byte SUBRF, $00
+    !word $0000
+    !word PRINTV
+v_CONS
+    !byte SUBRF, $02
+    !word $0000
+    !word CONSV
+v_EVAL
+    !byte SUBRF, $01
+    !word $0000
+    !word EVALV
+v_CAR
+    !byte SUBRF, $01
+    !word $0000
+    !word CARV
+v_EQ
+    !byte SUBRF, $02
+    !word $0000
+    !word EQV
+v_SETQ
+    !byte FSUBRF, $00
+    !word $0000
+    !word SETQV
+v_SET
+    !byte FSUBRF, $00
+    !word $0000
+    !word SETV
+v_ATOM
+    !byte SUBRF, $01
+    !word $0000
+    !word ATOMV
+v_READ
+    !byte SUBRF, $00
+    !word $0000
+    !word READXV
+v_CDR
+    !byte SUBRF, $01
+    !word $0000
+    !word CDRV
+v_PRIN
+    !byte SUBRF, $00
+    !word $0000
+    !word PRINZV
+v_COND
+    !byte FSUBRF, $00
+    !word $0000
+    !word CONDV
+v_QUOTE
+    !byte FSUBRF, $00
+    !word $0000
+    !word QUOV
+s_PROGN
+    !byte CHARF, $0B
+    !word v_PROGN
+    !word $0000
+    !text "PROGN"
+s_LOOP
+    !byte CHARF, $0A
+    !word v_LOOP
+    !word $0000
+    !text "LOOP"
+s_WHILE
+    !byte CHARF, $0B
+    !word v_WHILE
+    !word $0000
+    !text "WHILE"
+s_LIST
+    !byte CHARF, $0A
+    !word v_LIST
+    !word $0000
+    !text "LIST"
+s_CAAR
+    !byte CHARF, $0A
+    !word v_CAAR
+    !word $0000
+    !text "CAAR"
+s_CADR
+    !byte CHARF, $0A
+    !word v_CADR
+    !word $0000
+    !text "CADR"
+s_CDAR
+    !byte CHARF, $0A
+    !word v_CDAR
+    !word $0000
+    !text "CDAR"
+s_CDDR
+    !byte CHARF, $0A
+    !word v_CDDR
+    !word $0000
+    !text "CDDR"
+s_CAAAR
+    !byte CHARF, $0B
+    !word v_CAAAR
+    !word $0000
+    !text "CAAAR"
+s_CAADR
+    !byte CHARF, $0B
+    !word v_CAADR
+    !word $0000
+    !text "CAADR"
+s_CADAR
+    !byte CHARF, $0B
+    !word v_CADAR
+    !word $0000
+    !text "CADAR"
+s_CADDR
+    !byte CHARF, $0B
+    !word v_CADDR
+    !word $0000
+    !text "CADDR"
+s_CDAAR
+    !byte CHARF, $0B
+    !word v_CDAAR
+    !word $0000
+    !text "CDAAR"
+s_CDADR
+    !byte CHARF, $0B
+    !word v_CDADR
+    !word $0000
+    !text "CDADR"
+s_CDDAR
+    !byte CHARF, $0B
+    !word v_CDDAR
+    !word $0000
+    !text "CDDAR"
+s_CDDDR
+    !byte CHARF, $0B
+    !word v_CDDDR
+    !word $0000
+    !text "CDDDR"
+s_AND
+    !byte CHARF, $09
+    !word v_AND
+    !word $0000
+    !text "AND"
+s_OR
+    !byte CHARF, $08
+    !word v_OR
+    !word $0000
+    !text "OR"
+s_ERROR
+    !byte CHARF, $0B
+    !word v_ERROR
+    !word $0000
+    !text "ERROR"
+s_NOT
+    !byte CHARF, $09
+    !word v_NULL
+    !word $0000
+    !text "NOT"
+s_NUMBERP
+    !byte CHARF, $0D
+    !word v_NUMBERP
+    !word $0000
+    !text "NUMBERP"
+s_ZEROP
+    !byte CHARF, $0B
+    !word v_ZEROP
+    !word $0000
+    !text "ZEROP"
+s_ONEP
+    !byte CHARF, $0A
+    !word v_ONEP
+    !word $0000
+    !text "ONEP"
+s_MINUSP
+    !byte CHARF, $0C
+    !word v_MINUSP
+    !word $0000
+    !text "MINUSP"
+s_F
+    !byte CHARF, $07
+    !word $0000
+    !word $0000
+    !text "F"
+s_SAVE
+    !byte CHARF, $0A
+    !word v_SAVE
+    !word $0000
+    !text "SAVE"
+s_LOAD
+    !byte CHARF, $0A
+    !word v_LOAD
+    !word $0000
+    !text "LOAD"
+v_PROGN
+    !byte FSUBRF, $00
+    !word $0000
+    !word PROGNV
+v_LOOP
+    !byte FSUBRF, $00
+    !word $0000
+    !word LOOPV
+v_WHILE
+    !byte FSUBRF, $00
+    !word $0000
+    !word WHILEV
+v_LIST
+    !byte SUBRF, $00
+    !word $0000
+    !word LISTV
+v_CAAR
+    !byte SUBRF, $01
+    !word $0000
+    !word CAARV
+v_CADR
+    !byte SUBRF, $01
+    !word $0000
+    !word CADRV
+v_CDAR
+    !byte SUBRF, $01
+    !word $0000
+    !word CDARV
+v_CDDR
+    !byte SUBRF, $01
+    !word $0000
+    !word CDDRV
+v_CAAAR
+    !byte SUBRF, $01
+    !word $0000
+    !word CAAARV
+v_CAADR
+    !byte SUBRF, $01
+    !word $0000
+    !word CAADRV
+v_CADAR
+    !byte SUBRF, $01
+    !word $0000
+    !word CADARV
+v_CADDR
+    !byte SUBRF, $01
+    !word $0000
+    !word CADDRV
+v_CDAAR
+    !byte SUBRF, $01
+    !word $0000
+    !word CDAARV
+v_CDADR
+    !byte SUBRF, $01
+    !word $0000
+    !word CDADRV
+v_CDDAR
+    !byte SUBRF, $01
+    !word $0000
+    !word CDDARV
+v_CDDDR
+    !byte SUBRF, $01
+    !word $0000
+    !word CDDDRV
+v_AND
+    !byte FSUBRF, $00
+    !word $0000
+    !word ANDV
+v_OR
+    !byte FSUBRF, $00
+    !word $0000
+    !word ORV
+v_ERROR
+    !byte SUBRF, $00
+    !word $0000
+    !word ERORLV
+v_NUMBERP
+    !byte SUBRF, $01
+    !word $0000
+    !word NUMPV
+v_ZEROP
+    !byte SUBRF, $01
+    !word $0000
+    !word ZEROPV
+v_ONEP
+    !byte SUBRF, $01
+    !word $0000
+    !word ONEPV
+v_MINUSP
+    !byte SUBRF, $01
+    !word $0000
+    !word MINUSPV
+v_SAVE
+    !byte SUBRF, $01
+    !word $0000
+    !word DUMPV
+v_LOAD
+    !byte SUBRF, $01
+    !word $0000
+    !word LOADV
+v_PLUS
+    !byte SUBRF, $00
+    !word $0000
+    !word PLUSV
+v_DIFFERENCE
+    !byte SUBRF, $02
+    !word $0000
+    !word DIFFV
+v_MINUS
+    !byte SUBRF, $01
+    !word $0000
+    !word MINUSV
+v_SUBRP
+    !byte SUBRF, $01
+    !word $0000
+    !word SUBRPV
+v_TIMES
+    !byte SUBRF, $00
+    !word $0000
+    !word TIMESV
+v_QUOTIENT
+    !byte SUBRF, $02
+    !word $0000
+    !word QUOTV
+v_REMAINDER
+    !byte SUBRF, $02
+    !word $0000
+    !word REMV
+v_LESSP
+    !byte SUBRF, $02
+    !word $0000
+    !word LESSPV
+v_SUB1
+    !byte SUBRF, $01
+    !word $0000
+    !word SUBAV
+v_ADD1
+    !byte SUBRF, $01
+    !word $0000
+    !word ADDAV
+v_RECLAIM
+    !byte SUBRF, $00
+    !word $0000
+    !word RECLMV
+v_RPLACA
+    !byte SUBRF, $02
+    !word $0000
+    !word RPLACAV
+v_RPLACD
+    !byte SUBRF, $02
+    !word $0000
+    !word RPLACDV
+v_CHARS
+    !byte SUBRF, $01
+    !word $0000
+    !word CHARSV
+v_MESSON
+    !byte SUBRF, $00
+    !word $0000
+    !word MESSNV
+v_GET
+    !byte SUBRF, $02
+    !word $0000
+    !word GETV
+v_PUT
+    !byte SUBRF, $03
+    !word $0000
+    !word PUTV
+v_REMPROP
+    !byte SUBRF, $02
+    !word $0000
+    !word REMPRV
+v_GREATERP
+    !byte SUBRF, $02
+    !word $0000
+    !word GTV
+v_PLIST
+    !byte SUBRF, $01
+    !word $0000
+    !word GPLSTV
+v_CHARP
+    !byte SUBRF, $01
+    !word $0000
+    !word CHARPV
+v_LISTP
+    !byte SUBRF, $01
+    !word $0000
+    !word LISTPV
+v_ASSOC
+    !byte SUBRF, $02
+    !word $0000
+    !word ASSOCV
+v_UNTIL
+    !byte FSUBRF, $00
+    !word $0000
+    !word UNTILV
+v_FSUBRP
+    !byte SUBRF, $01
+    !word $0000
+    !word FSBRPV

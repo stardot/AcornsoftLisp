@@ -1,0 +1,265 @@
+    ; Filename: LISP01 - Rom header and initialisation
+    
+    ; ******************************
+    ; Standard language ROM header
+    ; ******************************
+	
+LISPST
+ROMHDR
+    jmp INITUR
+    jmp INITSE                                     ; Service entry
+    !byte $e2                                      ; Language, service & tube
+    !byte CPYOFF-ROMHDR
+    !byte 1                                        ; ROM version
+TITLE
+    !text "LISP"
+    !byte 0
+VERSN
+    !text "4.06"
+CPYOFF
+    !byte 0
+    !text "(C)1983 Acornsoft/1979 Owl Computers"
+    !byte 0
+TUBOFF
+    !byte   0, $80,   0,   0                       ; Tube load addr
+
+
+    ; ******************************
+    ; Initialisation routine
+    ; ******************************
+INITUR
+    cmp #1                                         ; Satisfactory?
+    beq CRYON
+    rts
+
+CRYON
+    cli
+    cld
+    lda #osbyte_read_high_order_address
+    jsr OSBYTE                                     ; Find out if in tube; Read the filing system 'machine high order address'
+    stx TUBE
+    txa
+    beq COLD
+    jmp WRMCHK
+
+COLD
+    lda #osbyte_read_oshwm                         ; Find PAGE
+    jsr	OSBYTE                                     ; Read top of operating system RAM address (OSHWM)
+    sty VECBOT
+    cpx #0
+    beq PBOUND
+    inc VECBOT                                     ; Put on page boundary
+PBOUND
+    ldy VECBOT
+    iny
+    iny
+    sty IMBOT
+
+    ; ******************************
+    ; Now copy down into RAM
+    ; ******************************
+    lda #<VECTAB
+    sta ROMBS
+    sta RAMBS
+    lda #>VECTAB
+    sta ROMBS+1
+    lda VECBOT
+    sta RAMBS+1
+    ldx #IMALEN
+    jsr COPY
+
+    ; ******************************
+    ; New initialisation routines
+    ; ******************************
+    lda #0
+    sta MEMINV                                     ; Memory OK
+    sta MODEF
+    lda #$f0
+    sta LSBUFF                                     ; Fudge first reads
+    lda #$0d
+    sta LSCHAR
+    ldx #3
+    lda #'0'
+LOOP5
+    sta GENCNT,x
+    dex
+    bpl LOOP5
+    lda TUBE
+    beq INTUBE
+    lda #WARMST                                    ; No more to do if in I/O
+    sta STATYP
+    jmp INUREL
+
+
+    ; **** Copy to HILISP
+INTUBE
+    lda #<LISPST
+    sta ROMBS
+    lda #>LISPST
+    sta ROMBS+1
+    lda #<HILISP
+    sta RAMBS
+    lda #>HILISP
+    sta RAMBS+1
+    ldx #(>LISPEN-LISVAL-1)+1
+    jsr COPY
+
+    ; **** Change addresses
+    lda #<RELTAB
+    sta RELBS
+    lda #>RELTAB
+    sta RELBS+1
+    lda #>HILISP-LISVAL
+    jsr CHADD
+
+    ; **** Alter vectors for tube
+    lda #<VECTAB+2
+    sta RELBS
+    lda VECBOT
+    sta RELBS+1
+    ldy #0
+LOOP3
+    lda (RELBS),y
+    clc
+    adc #>HILISP-LISVAL
+    sta (RELBS),y
+    lda RELBS
+    clc
+    adc #3                                         ; Next vector
+    sta RELBS
+    lda RELBS+1
+    adc #0
+    sta RELBS+1
+    cmp IMBOT
+    bne LOOP3
+    lda #0                                         ; Prevent warm start offer
+    sta STATYP
+
+    ; Do a *GO WRMCHK (via HILISP)
+
+    ; XXX HIWARM definition moved to after WRMCHK defined
+; HIWARM = WRMCHK+HILISP-LISVAL
+    
+    lda #<HIWARM
+    sta HILISP+1
+    lda #>HIWARM
+    sta HILISP+2
+    ldx #<(GOSTR)
+    ldy #>(GOSTR)
+    jsr OSCLI
+
+    ; General copy routine
+COPY
+    ldy #0
+LOOP1
+    lda (ROMBS),y
+    sta (RAMBS),y
+    iny
+    bne LOOP1
+    inc RAMBS+1
+    inc ROMBS+1
+    dex
+    bne LOOP1
+    rts
+
+
+    ; Address change routine
+CHADD
+    sta RELOFF
+    ldx #0
+    ldy #0
+LOOP2
+    lda (RELBS),y
+    sta RELOC
+    iny
+    lda (RELBS),y
+    beq CHRTS
+    sta RELOC+1
+    lda (RELOC,x)
+    clc
+    adc RELOFF
+    sta (RELOC,x)
+    iny
+    bne LOOP2
+    inc RELBS+1
+    jmp LOOP2
+
+CHRTS
+    rts
+
+
+    ; ******************************
+    ; Claim as service
+    ; ******************************
+INITSE
+    cmp #service_unrecognised_star_command         ; Reasonable?
+    beq OKCALL
+    cmp #service_star_help_command                 ; Help?
+    beq HELP
+    rts
+
+HELP
+    pha
+    txa
+    pha
+    tya
+    pha                                            ; Mustn't corrupt zero page
+    lda HANDLE
+    pha
+    ldx #HLPOFF
+    jsr MESSAH
+    pla
+    sta HANDLE
+    pla
+    tay
+    pla
+    tax
+    pla
+    rts
+
+OKCALL
+    pha
+    tya
+    pha
+    txa
+    pha
+    lda (CLISTR),y
+    cmp #'L'
+    bne NOTLSP
+    iny
+    lda (CLISTR),y
+    cmp #'I'
+    bne NOTLSP
+    iny
+    lda (CLISTR),y
+    cmp #'S'
+    bne NOTLSP
+    iny
+    lda (CLISTR),y
+    cmp #'P'
+    bne NOTLSP
+    iny
+    lda (CLISTR),y
+    cmp #$0d
+    bne NOTLSP
+    lda #osbyte_read_tube_presence
+    ldx #0
+    ldy #$ff
+    jsr OSBYTE                                     ; Is there a tube?; Read Tube present flag
+    txa
+    bne STLISP                                     ; If so don't flag
+    lda #COLDST
+    sta STATYP
+STLISP
+    pla
+    tax                                            ; X=ROM number
+    lda #osbyte_enter_language
+    jmp OSBYTE                                     ; Start up LISP; Enter language ROM X
+
+NOTLSP
+    pla
+    tax
+    pla
+    tay
+    pla
+    rts

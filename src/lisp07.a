@@ -1,0 +1,763 @@
+    ; Filename: LISP07 - CAR,CDA,COND,SAVE,LOAD etc.
+    
+    ; ******************************
+    ; File with CAR, CDR and COND
+    ; functions.  Includes PROGN,
+    ; PROGNA and POINTN as useful
+    ; entry points.
+    ; ******************************
+    
+PARERR
+    brk                                            ; COND syntax
+
+    !byte $0d
+    !text "COND syntax"
+    !byte 0
+
+
+    ; **** COND
+COND
+    lda WSA+1
+    bne REMAIN
+    jmp POPA
+
+REMAIN
+    jsr NXTARH
+    ldy #0
+    lda (ARG),y
+    bpl PARERR
+    ldy #4                                         ; Split:
+    lda (ARG),y                                    ; Condition - ARG
+    sta WSB+1                                      ; Actions   - WSB
+    dey                                            ; Rest      - WSA
+    lda (ARG),y
+    sta WSB
+    dey
+    lda (ARG),y
+    tax
+    dey
+    lda (ARG),y
+    stx ARG+1
+    sta ARG
+    jsr EVALU
+    lda ARG+1                                      ; Condition NIL?
+    beq COND                                       ; Next condition duo
+    lda WSB+1
+    beq PRGEND
+    sta WSA+1
+    lda WSB
+    sta WSA
+MTODO
+    jsr NXEVAM
+PROGN
+    lda WSA+1
+    bne MTODO
+PRGEND
+    jmp POP
+
+
+    ; **** UNTIL
+UNTIL
+    jsr NXEVAL
+    lda ARG+1
+    beq PRGEND
+    bne WILLY
+
+    ; **** WHILE
+WHILE
+    jsr NXEVAL
+    lda ARG+1
+    bne PRGEND
+    beq WILLY
+WILL
+    jsr NXEVAM
+WILLY
+    lda WSA+1
+    bne WILL
+    sta REP
+    jmp POP
+
+
+    ; **** QUOTE
+QUO
+    jsr NXTARG
+    jmp POP
+
+
+    ; ******************************
+    ; Now the CAR - CDR complex
+    ; ******************************
+PERR
+    brk                                            ; Atomic arg
+
+    !byte $0e
+    !text "CAR/CDR of atom"
+    !byte 0
+
+CDDDR
+    ldx #$1f
+    bne CXR
+CADDR
+    ldx #$1b
+    bne CXR
+CDADR
+    ldx #$17
+    bne CXR
+CAADR
+    ldx #$13
+    bne CXR
+CDDAR
+    ldx #$0f
+    bne CXR
+CDDR
+    ldx #$0e
+    bne CXR
+CADAR
+    ldx #$0b
+    bne CXR
+CADR
+    ldx #$0a
+    bne CXR
+CDAAR
+    ldx #7
+    bne CXR
+CDAR
+    ldx #6
+    bne CXR
+CDR
+    ldx #5
+    bne CXR
+CAAAR
+    ldx #3
+    bne CXR
+CAAR
+    ldx #2
+    bne CXR
+CAR
+    ldx #1
+CXR
+    lda ARGA
+    sta ARG
+    lda ARGA+1
+    sta ARG+1
+CXLP
+    cmp #0
+    beq PERR
+    ldy #0
+    lda (ARG),y
+    bpl PERR
+    ldy CXXXR,x
+    lda (ARG),y
+    pha
+    dey
+    lda (ARG),y
+    sta ARG
+    pla
+    sta ARG+1
+    dex
+    ldy CXXXR,x
+    bne CXLP
+    jmp POP
+
+
+    ; **** ERROR
+ERRORL
+    jsr PRINTE
+LISPER
+    brk
+
+    !byte $0f
+    !text "ERROR function"
+    !byte 0
+
+
+    ; **** AND
+_AND
+    lda WSA+1
+    bne ANDON
+    jmp YES
+
+ANDON
+    jsr NXEVAM
+    lda ARG+1
+    bne _AND
+    jmp NO
+
+
+    ; **** OR
+OR
+    lda WSA+1
+    bne ORON
+    jmp NO
+
+ORON
+    jsr NXEVAM
+    lda ARG+1
+    beq OR
+    jmp YES
+
+
+    ; **** LOOOP
+LOOP
+    lda WSA
+    sta WSC
+    lda WSA+1
+    sta WSC+1
+RESTAR
+    lda WSC
+    sta WSA
+    lda WSC+1
+    sta WSA+1
+RIPON
+    lda WSA+1
+    beq RESTAR
+    sta REP
+    jsr NXEVAM
+    lda REP
+    bne RIPON
+    lda #$ff
+    sta REP
+    jmp POP
+
+
+    ; ******************************
+    ; Extra LISP entry points
+    ; ******************************
+    ; **** CONS
+CONS
+    jsr ALPAIR
+    ldy #4
+CONSLP
+    lda WSC+1,y
+    sta (POINT),y
+    dey
+    bne CONSLP
+    lda POINT
+    sta ARG
+    lda POINT+1
+    jmp POPA
+
+
+    ; **** SET
+SET
+    jsr NXEVAL
+    jmp DOSET
+
+
+    ; **** SETQ
+SETQ
+    jsr NXTARG
+DOSET
+    lda ARG+1
+    beq SETERR
+    ldy #0
+    lda (ARG),y
+    bne SETERR
+    jsr SAVAR
+    jsr NXEVAL
+    ldy #2                                         ; Alter value cell
+    lda ARG
+    sta (WSB),y
+    iny
+    lda ARG+1
+    sta (WSB),y
+    jmp POP
+
+SETERR
+    brk                                            ; SET non-atomic
+
+    !byte $10
+    !text "Bad assignment"
+    !byte 0
+
+
+    ; **** LIST
+LIST
+    lda #0
+    sta ARG+1
+    ldx TVSEXT
+    cpx #$0c
+    bcc NOLLY
+LL
+    stx YSAV
+    jsr ALPAIR
+    ldx YSAV
+    ldy #4
+    lda ARG+1
+    sta (POINT),y
+    dey
+    lda ARG
+    sta (POINT),y
+    dex
+    dey
+    lda TVS,x
+    sta (POINT),y
+    dex
+    dey
+    lda TVS,x
+    sta (POINT),y
+    lda POINT
+    sta ARG
+    lda POINT+1
+    sta ARG+1
+    cpx #$0c
+    bcs LL
+NOLLY
+    jmp POP
+
+
+    ; **** VDU
+VDU
+    jsr ALLNUM
+    ldx #$0a
+MVDU
+    lda TVS,x
+    sta ARG
+    lda TVS+1,x
+    sta ARG+1
+    ldy #2
+    lda (ARG),y                                    ; LS byte of arg
+    jsr OSWRCH                                     ; Write character
+    inx
+    inx
+    cpx TVSEXT
+    bcc MVDU
+    jmp POP                                        ; Result is ARG
+
+
+    ; ******************************
+    ; Conditionals on numeric atoms
+    ; ******************************
+    ; **** CHARP
+CHARP
+    ldx ARGA+1
+    beq YESNIL
+    ldy #0
+    lda (ARGA),y
+    bne NNO
+YESNIL
+    jmp YES
+
+
+    ; **** SUBRP
+SUBRP
+    lda #SUBRF
+    bne TYPE
+
+    ; **** FSUBRP
+FSUBRP
+    lda #FSUBRF
+    bne TYPE
+
+    ; **** LISTP
+LISTP
+    lda #LISTF
+    bne TYPE
+
+    ; **** NUMBERP
+NUMP
+    lda #NUMF
+TYPE
+    ldx ARGA+1
+    beq NNO
+    ldy #0
+    cmp (ARGA),y
+    bne NNO
+    jmp YES
+
+NNO
+    jmp NO
+
+
+    ; **** ZEROP
+ZEROP
+    ldx #0
+    beq TSN
+
+    ; **** ONEP
+ONEP
+    ldx #1
+TSN
+    lda ARGA+1
+    beq NNO                                        ; CHECK IT IS NUM.
+    ldy #0
+    lda (ARGA),y
+    cmp #NUMF
+    bne NNO
+    ldy #2
+    txa
+    eor (ARG),y
+    iny
+    ora (ARG),y
+    bne NNO
+    jmp YES
+
+
+    ; **** MINUSP
+MINUSP
+    lda ARGA+1
+    beq NNO
+    ldy #0
+    lda (ARGA),y
+    cmp #NUMF
+    bne NNO
+    ldy #3
+    lda (ARG),y
+    bpl NNO
+    jmp YES
+
+
+    ; ******************************
+    ; Set up DCB for file I/O
+    ; ******************************
+SETDCB
+    jsr MKNAM                                      ; Pointer to name
+    lda #osbyte_read_high_order_address            ; m/c higher order addr
+    jsr OSBYTE                                     ; Read the filing system 'machine high order address'
+    lda #0
+    sta OSINFO+6
+    lda #<AREEXT                                    ; Load & save addr
+    sta OSINFO+2
+    sta OSINFO+10
+    lda IMBOT
+    sta OSINFO+3
+    sta OSINFO+11
+    stx OSINFO+4
+    stx OSINFO+12
+    sty OSINFO+5
+    sty OSINFO+13
+    lda AREVAL                                     ; End addr
+    sta OSINFO+14
+    lda AREVAL+1
+    sta OSINFO+15
+    stx OSINFO+16
+    sty OSINFO+17
+    rts                                            ; DCB complete
+
+
+    ; **** LOAD
+LOAD
+    jsr SETDCB
+    lda #osfile_load                               ; Load operation
+    ldx #<(OSINFO)
+    ldy #>(OSINFO)
+    jsr OSFILE                                     ; Load named file (if XY+6 contains 0, use specified address) (A=255)
+INUREL
+    lda #<AREEXT                                    ; Set up base
+    sta RELBS
+    lda IMBOT
+    sta RELBS+1
+    jsr UNREL
+    jmp INIT                                       ; Re-start LISP
+
+
+    ; **** DUMP
+DUMP
+    jsr RUBBSH                                     ; GC
+    jsr SETDCB                                     ; Set up before relat
+    jsr RELAT                                      ; Make relocatable
+    lda #osfile_save                               ; Save
+    ldx #<(OSINFO)
+    ldy #>(OSINFO)
+    jsr OSFILE                                     ; Save a block of memory (returning file length and attributes) (A=0)
+    jmp POP
+
+CHARQ
+    lda ARGA+1
+    beq FILERR
+CHARQR
+    ldy #0
+    lda (ARGA),y
+    bne FILERR
+    rts
+
+FILERR
+    brk                                            ; Not char atom
+
+    !byte $11
+    !text "Character atom expected"
+    !byte 0
+
+ATOA
+    lda ARGA
+    sta ARG
+    lda ARGA+1
+    sta ARG+1
+    rts
+
+ANUM
+    jsr ALLNUM
+    ldy #3
+    lda (ARGA),y
+    sta ACL+1
+    dey
+    lda (ARGA),y
+    sta ACL
+    rts
+
+
+    ; **** CALL
+CALL
+    jsr ANUM
+    lda #>BACALL+1
+    pha                                            ; Set up return
+    lda #<BACALL+1                                 ; address
+    pha
+    lda (ARGB),y                                   ; Get A
+    jmp (ACL)                                      ; and call
+
+
+    ; **** PEEK
+PEEK
+    jsr ANUM
+    ldy #0
+BACALL
+    lda (ACL),y
+BECALM
+    sta ACL
+    lda #0
+    sta ACL+1
+    jmp ACLRET
+
+
+    ; **** POKE
+POKE
+    jsr ANUM
+    lda (ARGB),y
+    ldy #0
+    sta (ACL),y
+    lda ARGB
+    sta ARG
+    lda ARGB+1
+    jmp POPA
+
+
+    ; OBLIST
+OBLIST
+    jsr SETCEL                                     ; Only want good
+    ldy #0                                         ; cells
+    sty ARG+1
+BOOM
+    lda (CELL),y
+    bne NEXOS
+    jsr USEFUL
+    beq NEXOS                                      ; Value UNDEFINED?
+    lda CELL
+    sta WSA
+    lda CELL+1
+    sta WSA+1
+    jsr ALPAIR
+    ldy #4
+    lda ARG+1
+    sta (POINT),y
+    dey
+    lda ARG
+    sta (POINT),y
+    dey
+    lda WSA+1
+    sta CELL+1
+    sta (POINT),y
+    dey
+    lda WSA
+    sta CELL
+    sta (POINT),y
+    lda POINT+1
+    sta ARG+1
+    lda POINT
+    sta ARG
+NEXOS
+    jsr NXCELL
+    bcc BOOM
+    jmp POP
+
+USEFUL
+    ldy #2                                         ; Checks for
+    lda (CELL),y                                   ; string rather than
+    cmp #<s_UNDEFINED                              ; OBLIST atoms
+    bne USABLE
+    iny
+    lda (CELL),y
+    cmp ZAVAL
+    bne USABLE
+    ldy #5                                         ; NIL P-list
+    lda (CELL),y
+USABLE
+    rts
+
+
+    ; **** Make DOS name
+MKNAM
+    jsr CHARQ                                      ; FOR DOS
+    lda #<NAMBUF
+    sta OSINFO
+    lda #>NAMBUF
+    sta OSINFO+1
+    ldy #1
+    lda (ARGA),y                                   ; Get name length
+    tay
+    lda #$0d                                       ; Terminator
+MORLET
+    sta OSWBUF-6,y
+    dey
+    cpy #6
+    bcc USABLE
+    lda (ARGA),y
+    bcs MORLET                                     ; Always taken
+
+    ; **** *
+STAR
+    jsr CHARQ
+    ldy #1
+    lda (ARGA),y
+    cmp #$3e
+    bcc SMALLP
+    lda #$3e
+SMALLP
+    tay
+    lda #$0d
+MORLEZ
+    sta DOSBUF-6,y
+    dey
+    cpy #6
+    bcc STARRY
+    lda (ARGA),y
+    bcs MORLEZ
+STARRY
+    ldx #<(DOSBUF)
+    ldy #>(DOSBUF)
+    jsr OSCLI
+    jmp NO
+
+
+    ; **** OPEN
+OPE
+    jsr MKNAM
+    lda ARGB+1
+    cmp #1
+    bcc WOPEN
+    lda #$c0                                       ; OPEN FOR READ
+    jmp ROPEN
+
+WOPEN
+    lda #osfind_open_output                        ; OPEN FOR WRITE
+ROPEN
+    ldx OSINFO
+    ldy OSINFO+1
+    jsr OSFIND                                     ; Open file for output (A=128)
+    cmp #0
+    beq FNERR
+    sta ACL
+    lda #0
+    sta ACL+1
+    jmp ACLRET                                     ; RESULT IN A
+
+FNERR
+    brk                                            ; File not found
+
+    !byte $d6
+    !text "File not found"
+    !byte 0
+
+
+    ; **** Unrelativise
+UNREL
+    ldy #5
+    lda (RELBS),y                                  ; Get old IMBOT value from UNDEFINED
+    sec
+    sbc IMBOT
+    sta RELOFF                                     ; Relativisation constant
+    ldy #0
+    lda (RELBS),y                                  ; Set up slave
+    sta AREVAL
+    iny
+    lda (RELBS),y                                  ; Length of IMAGE
+    sec
+    sbc RELOFF
+    sta AREVAL+1
+    sta (RELBS),y                                  ; Real end of IMAGE
+    lda #2                                         ; Get first item
+    bpl NXITU
+NEXTU
+    ldy #0
+    lda (RELBS),y                                  ; Sort out type
+    cmp #CHARF
+    beq URC
+    cmp #SUBRF
+    beq URS
+    cmp #FSUBRF
+    beq URS
+    cmp #NUMF
+    beq URN
+    ldy #2                                         ; Must be dotted pair
+    jsr ALTADU
+    ldy #4
+    jsr ALTADU
+    lda #5                                         ; Length
+    bpl NXITU
+URN
+    lda #4                                         ; Number
+    bpl NXITU                                      ; No alteration
+URC
+    jsr TWOADD                                     ; Character
+    ldy #1
+    lda (RELBS),y
+    jmp NXITU
+
+URS
+URF
+    jsr TWOADD                                     ; Subr/Fsubr
+    lda #6
+    bpl NXITU
+TWOADD
+    ldy #3
+    jsr ALTADU
+    ldy #5
+ALTADU
+    lda (RELBS),y                                  ; Adjust addr
+    beq NOTU                                       ; NIL - needn't alter
+    sec
+    sbc RELOFF
+    sta (RELBS),y
+NOTU
+    rts
+
+NXITU
+    jsr NXIT
+    bcc NEXTU
+    rts
+
+NXIT
+    clc                                            ; Step to next item
+    adc RELBS
+    sta RELBS
+    lda #0
+    adc RELBS+1
+    sta RELBS+1
+    cmp AREVAL+1                                   ; End of image
+    bcc OKOUT
+    bne NOTOK
+    lda RELBS
+    cmp AREVAL
+    bcc OKOUT
+NOTOK
+    sec
+    rts                                            ; End reached
+
+OKOUT
+    clc
+    rts                                            ; End not reached
+
+
+    ; **** RELAT (somewhat reduced!)
+RELAT
+    lda #<AREEXT
+    sta RELBS                                      ; Reset base
+    lda IMBOT
+    sta RELBS+1
+    ldy #0
+    lda AREVAL
+    sta (RELBS),y
+    iny
+    lda AREVAL+1
+    sta (RELBS),y
+    rts
