@@ -2,7 +2,7 @@
 
 (setq linewidth 31)
 
-(setq defun '(lambda x (set (car x) (cons (quote lambda) (cdr x))) (car x)))
+(setq defun '(lambda x_ (set (car x_) (cons (quote lambda) (cdr x_))) (car x_)))
 
 (defun charcount (x left)
   (cond
