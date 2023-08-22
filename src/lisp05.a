@@ -76,6 +76,8 @@ RSREAD
     ; **** READ
 READ
     ldx #$ff
+    ; The following line causes a problem if a GC occurs during READ, because
+    ; ARG is not a valid pointer.  See the comment at REGIST for workaround.
     stx ARG+1                                      ; Flag for rubbish
     jsr STACK
 NXCHAR
