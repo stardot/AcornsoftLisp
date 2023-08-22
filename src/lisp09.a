@@ -491,6 +491,7 @@ BAND
     dey
     sta (POINT),y
     ldx TVSEXT
+    bne SBAND
 MBAND
     dex
     dex
@@ -506,6 +507,7 @@ MBAND
     and (POINT),y
     sta (POINT),y
     dey
+SBAND
     cpx #$0a
     bne MBAND
     jmp AMADE
@@ -521,6 +523,7 @@ BOR
     dey
     sta (POINT),y
     ldx TVSEXT
+    bne SBOR
 MBOR
     dex
     dex
@@ -536,6 +539,7 @@ MBOR
     ora (POINT),y
     sta (POINT),y
     dey
+SBOR
     cpx #$0a
     bne MBOR
     jmp AMADE
