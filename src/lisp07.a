@@ -386,9 +386,9 @@ TSN
     bne NNO
     ldy #2
     txa
-    eor (ARG),y
+    eor (ARGA),y
     iny
-    ora (ARG),y
+    ora (ARGA),y
     bne NNO
     jmp YES
 
@@ -402,7 +402,7 @@ MINUSP
     cmp #NUMF
     bne NNO
     ldy #3
-    lda (ARG),y
+    lda (ARGA),y
     bpl NNO
     jmp YES
 

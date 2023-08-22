@@ -15,6 +15,7 @@
     ;; Further restored August 2023 RMT
 	
     ;; Version 4.07 start 10/08/23 RMT
+    ;; Bugs in ZEROP/ONEP/MINUS fixed 10/8/23
 
     ;; *******************************
 
