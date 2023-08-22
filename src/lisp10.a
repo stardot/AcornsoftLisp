@@ -113,6 +113,10 @@ STOCK
 RUBBSH
     stx GARX
     sty GARRY
+    lda ACL			; Save ACL which is trashed by GC messages
+    pha
+    lda ACL+1
+    pha
     lda #$ff                                       ; Mark memory invalid
     sta MEMINV
     lda #4                                         ; Start timing
@@ -521,6 +525,10 @@ MORTIM
     bpl MORTIM
     ldx GARX
     ldy GARRY
+    pla				; restore ACL
+    sta ACL+1
+    pla
+    sta ACL
     lda #0
     sta MEMINV
     lda SA
