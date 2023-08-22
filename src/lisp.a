@@ -20,7 +20,7 @@
     ;; Bug in GC during BIND fixed 14/8/23
     ;; Bug in (ASSOC 'A NIL) fixed 19/8/23
     ;; Corrected "Function expected" error number 21/8/23
-    ;; Bugs in BOR/BAND with no arguments fixed 22/8/34
+    ;; Bugs in BOR/BAND with no arguments fixed 22/8/23
 
     ;; *******************************
 
