@@ -329,6 +329,19 @@ XROOM
 
 
     ; ******************************
+    ; Ensure that a apecified amount
+    ; of space will be available
+    ; without needing to call the GC
+    ; ******************************
+RESERV
+    jsr ALVEC			; allocate it
+    lda POINT			; then give it back
+    sta AREVAL
+    lda POINT+1
+    sta AREVAL+1
+    rts
+    
+    ; ******************************
     ; Here is the space allocator
     ; routine. If allocates up to
     ; 256 bytes of initialized store
