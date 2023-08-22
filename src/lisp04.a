@@ -264,6 +264,12 @@ ISEXPR
 RADON
     ldx #$0a
 XENON
+    txa
+    pha
+    lda #4			; ensure space for binding as GC
+    jsr RESERV			; in BIND might move symbol
+    pla
+    tax
     ldy #2
     lda (WSB),y
     beq LAMERR
@@ -283,6 +289,8 @@ XENON
     iny                                            ; The default value?
     lda (WSD),y
     sta TVS+1,x
+    inc TVSEXT			   ; Extend TVSEXT to include 
+    inc TVSEXT			   ; value in case of GC
     clc
 NOD
     ldy #2
@@ -320,6 +328,12 @@ GADARG
     jmp LAMERR
 
 ISFXPR
+    tya
+    pha
+    lda #4			; ensure space for binding as GC
+    jsr RESERV			; in BIND might move symbol
+    pla
+    tay
     lda WSB
     sta WSD
     lda WSB+1
