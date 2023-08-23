@@ -17,12 +17,19 @@ tlisp:	lisp*.a
 tlisphigh:	lisp*.a
 	acme -DLISVAL='$$8100' -o tlisphigh lisp.a
 
-# You probably don't have the run-bbc program.  Instead you need to
-# run tlisp on a BBC computer or emulator, and then execute the
-# commands in init.lsp.
+# You probably don't have the run-bbc program.
+# Instead you need to do something like this:
+# - make tlisp and INIT 
+# - run tlisp as a ROM on a BBC computer or emulator, without a 2nd processor
+# - do (* 'EXEC! INIT) to create the IMAGE file
+# - ignore the error about (* 'EXIT).
+# - run make to complete the process
 
 IMAGE:	init.lsp tlisp
 	run-bbc -c -i init.lsp tlisp
+
+INIT:	init.lsp
+	tr '\012a-z' '\015A-Z' <init.lsp >INIT
 
 reltab.bin:	tlisp tlisphigh build-reltab
 	./build-reltab -b -e a400 -h d700 tlisp tlisphigh >reltab.bin
