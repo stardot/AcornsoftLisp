@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      table {border: 2px solid;}
+      tr.bytes td {width: 6em;}
+      tr.object td:first-of-type {background: lightskyblue; width: 9em; border: 1px solid;}
+      tr.object td {background: lightskyblue; border: 1px solid;}
+      tr.object th {background: white; border: 1px solid;}
+    </style>
+    <title>Notes on the Acornsoft Lisp interpreter</title>
+  </head>
+  <body>
+
+    <h1>Notes on the Acornsoft Lisp interpreter</h1>
+    
+    <p>The Acornsoft Lisp Interpreter was produced for the BBC
+      Microcomputer in the early 1980s.  It was adapted from a Lisp
+      written for the Apple II by Owl Computers.</p>
+
+    <p>It is a very small, dynamically-scoped Lisp written in 6502
+      assembler.  Versions were sold on cassette and floppy disk, but
+      the version discussed here is the one distributed as a ROM.</p>
+    
+    <h2>Object types</h2>
+    
+    <p>There are five types of object - symbol, number, subr, fsubr,
+      and cons.  Each contains a type field as its first byte.</p>
+
+    <table>
+      <tr class="bytes"><th>Byte:</th><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td>
+	<td>5</td><td>6</td><td>7</td><td>...</td></tr>
+      <tr class="object">
+	<th>symbol</th>
+	<td>CHARF (0x00)</td>
+	<td>length</td>
+	<td colspan="2">value</td>
+	<td colspan="2">property list</td>
+	<td colspan="3">name ...</td>
+      </tr>
+      <tr class="object">
+	<th>number</th>
+	<td>NUMF (0x04)</td>
+	<td>length (4)</td>
+	<td colspan="2">value</td>
+      </tr>
+      <tr class="object">
+	<th>subr</th>
+	<td>SUBRF (0x08)</td>
+	<td>min args</td>
+	<td colspan="2">unused</td>
+	<td colspan="2">function</td>
+      </tr>
+      <tr class="object">
+	<th>fsubr</th>
+	<td>FSUBRF (0x0c)</td>
+	<td>min args</td>
+	<td colspan="2">unused</td>
+	<td colspan="2">function</td>
+      </tr>
+      <tr class="object">
+	<th>cons</th>
+	<td>LISTF (0x80)</td>
+	<td colspan="2">car</td>
+	<td colspan="2">cdr</td>
+      </tr>
+    </table>
+      
+    <p>Symbols (referred to in the code as "character atoms") contain
+      a pointer to their value and property list.  They are variable
+      length, with the name of the symbol at the end.  The length
+      field gives the length of the whole object, six plus the length
+      of the name. There are no undefined symbols, but their initial
+      value is a symbol named UNDEFINED.  The property lists of
+      symbols are in fact a-lists, not p-lists.  Symbols are interned
+      by traversing the entire heap looking for an existing symbol
+      with the right name.</p>
+
+    <p>Numbers are 16 bit integers.  The length field seems unnecessary as
+      it is always four, but the code appears to envisage the
+      possibility of larger number objects.</p>
+
+    <p>Subrs and fsubrs represent built-in functions and contain the
+      address of the assembler code that implements them.  They can
+      also contain what appears to be a pointer to a list of default
+      arguments.  There is code in eval (and the garbage collector) to
+      handle this, but none of the built-in functions use it.</p>
+
+    <p>Conses contain (of course) pointers to their car and cdr.
+      The type code of 0x80 (-128) allows their type to be tested
+      by a single BMI (branch if minus) instruction.</p>
+
+    <p>The type codes are all multiples of four.  The two low order
+      bits are used to mark objects during garbage collection.</p>
+
+    <p>In addition to these five types there is also the value NIL,
+      which is represented by a zero pointer, or rather by any pointer
+      whose high byte is zero.  This makes it easy to test for NIL,
+      but on the other hand requires that pointers be tested for NIL
+      before dereferencing, in particular before looking at their
+      type field.  There is also a symbol with the name NIL, but any
+      attempt to intern the name "NIL" returns a NIL pointer instead.</p>
+
+    <p>Objects are usually addressed through a pointer in zero page
+      indexed by the y-register to access their fields.</p>
+    
+    <p>There is no string type.  Unreferenced symbols whose value is
+      UNDEFINED and whose property list is NIL will be garbage
+      collected, so they can safely be used for this purpose.  Because
+      objects are limited in size to 255 bytes, the longest symbol
+      name possible is 249 characters.</p>
+
+    <h2>Memory Use</h2>
+
+    <h3>Zero page</h3>
+    
+    The interpreter stores numerous variables in zero page, most
+    importantly an area called TVS.  TVS presumably stands for
+    something like "temporary variable space".  It is the area that is
+    pushed onto the stack when when a function is called. TVS starts
+    at address 0x0030.  The variables in TVS (all 16-bit pointers
+    unless specified) are:
+
+    <dl>
+      <dt>ARG (TVS+0x00)</dt>
+      <dd>This variable is central to the read-eval-print loop.
+	The interpreter function READ returns its value in ARG,
+	EVAL evaluates the expression in ARG and puts the result
+	in ARG, and PRINT prints the value in ARG.</dd>
+
+      <dt>BINDER (TVS+0x02)</dt>
+      <dd>This single byte location is always zero.  It exists
+	for convenience when pushing a stack frame (see below).</dd>
+
+      <dt>TVSEXT (TVS+0x03)</dt>
+      <dd>This single byte location contains the size of the active
+	part of TVS.  It is always at least 10 (0x0a) and increases
+	when arguments are present.</dd>
+
+      <dt>WSA (TVS+0x04), WSB (TVS+0x06), WSC (TVS+0x08)</dt>
+      <dd>These three "workspace" variables are used for various
+	purposes.  Because they are within TVS, they are saved on
+	the stack when a function is called, so they can be used
+	for values that need to survive across function calls.</dd>
+
+      <dt>ARGA (TVS+0x0a), ARGB (TVS+0x0c), ...</dt>
+      <dd>When a function is called, its evaluated arguments are
+	placed here.  The first 5 are named ARGA ... ARGE, but up to
+	28 arguments are allowed.  The number present can be deduced
+	from TVSEXT.</dd>
+	
+    </dl>
+
+    <p>Other variables in zero page include the stack pointer (SP) and
+      a fourth workspace variable WSD which is not saved on the stack.
+      Locations at the end of page zero are reserved for the operating
+      system.</p>
+      
+    <h3>Page 1</h3>
+
+    <p>Page 1 is the 6502 hardware stack.  It is not used for the
+      the Lisp function stack, as it is much too small.  It is used
+      for function calls within the interpreter itself, and for
+      garbage collection (see below).</p>
+
+    <h3>Other variables and buffers</h3>
+
+    <p>Several less heavily used variables are stored in page 4,
+      including VECBOT and IMBOT (see below).  Pages 6 and 7 are used
+      for I/O buffers.</p>
+
+    <h3>Vectors for built-in functions</h3>
+
+    <p>Subrs and fsubrs do not directly call the assembly language
+      functions that implement them.  Instead they are vectored
+      through a table of JMP instructions stored immediately below the
+      heap.  This is so that saved images do not depend on a
+      particular version of the interpreter (see saved images
+      below).  The jump table occupies two pages of memory, and is
+      copied into RAM from the ROM when Lisp starts.  Its start
+      address depends on OSHWM, the Operating System High-Water Mark,
+      but is always on a page boundary, two pages before the start of
+      the heap.  The high-order byte of its address is stored in
+      the variable VECBOT.</p>
+
+    <h3>The heap</h3>
+    
+    <p>All Lisp objects are stored on the heap.  It grows upwards from
+      from the page boundary following the vectors.  The high-order
+      byte of its address is stored in the variable IMBOT, and the
+      address of the first free byte above the heap is stored in the
+      variable AREVAL.  The initial heap image is copied from the
+      ROM.</p>
+    <p>Objects are stored consecutively in the heap without regard to
+      type.  New objects are allocated at the top of the heap.  As the
+      6502 has no alignment restrictions there is no unused space
+      between objects; the heap can be traversed by starting from the
+      first object, then adding its length to get the second one, and
+      so on.</p>
+
+    <h3>The stack</h3>
+    
+    <p>The stack grows downwards from the top of available memory,
+      which is obtained from the operating system and stored in a
+      variable called ARETOP.  Its value depends on the
+      current graphics mode.  (The graphics mode can be changed, but
+      changes do not take effect until the interpreter returns to its
+      top level, so that the top of the stack can be changed.)</p>
+    <p>The stack contains saved variables from TVS, return addresses,
+      and saved variables bindings (shallow binding).  A stack
+      frame looks like this (higher addresses at the top):</p>
+
+    <table border="1px">
+      <tr><td>ARETOP</td></tr>
+      <tr><td>(next frame)</td><td>...</td></tr>
+      <tr><td></td><td>ARG</td></tr>
+      <tr><td></td><td>return address</td></tr>
+      <tr><td></td><td>ARGn</td></tr>
+      <tr><td></td><td>...</td></tr>
+      <tr><td></td><td>ARGA</td></tr>
+      <tr><td></td><td>WSC</td></tr>
+      <tr><td></td><td>WSB</td></tr>
+      <tr><td></td><td>WSA</td></tr>
+      <tr><td></td><td>size of frame (= number of arguments * 2 + 0x0a)</td></tr>
+      <tr><td></td><td>symbol</td></tr>
+      <tr><td></td><td>saved symbol value</td></tr>
+      <tr><td></td><td>...</td></tr>
+      <tr><td>SP</td><td>size of bindings (= number of bindings *  4)</td></tr>
+</table>
+
+    <p>A frame is pushed by the function STACK.  It first pushes ARG,
+      then the return address of the function that called STACK (which
+      is extracts from the hardware stack).  It then pushes the active
+      part of TVS except ARG (TVSEXT-2 bytes), leaving the stack
+      pointer pointing to the copy of BINDER at the bottom.  The
+      pushed value of TVSEXT will be the size of the frame above it
+      (including the return address and ARG), and since BINDER is
+      always zero, this correctly sets the size of the bindings to
+      zero - none have been pushed yet.</p>
+    
+    <p>During a function call, the interpreter will call BIND to bind
+      the function's arguments.  This pushes the symbol onto the
+      stack (overwriting the existing binding size), followed by its
+      old value, then sets the symbol to the new value.  It then
+      pushes the new binding size (four more than the old one).</p>
+    
+    <p>When a function returns, the stack frame is popped by jumping
+      to POP.  The saved bindings are undone, the saved variables and
+      arguments restored, and finally control returns to the saved
+      return address.  As noted above this is the return address of
+      the function that called STACK, typically resulting in a return
+      from EVALU.  The value of ARG is not restored - instead it
+      contains the result of the function.  It is stored on the stack
+      only so that the expression being evaluated can be displayed
+      during a backtrace.</p>
+    
+    <p>As well as function calls, the reader and printer push
+      stack frames as they recurse.</p>
+
+    <h3>Running out of memory</h3>
+    
+    <p>If the top of the heap and the bottom of the stack meet, we
+      have run out of memory.  This can happen in three circumstances:
+      allocating a new object, pushing a stack frame, and pushing a
+      binding.  When this happens the garbage collector is called (see
+      below).  If enough space cannot be recovered, an error is
+      signalled and the interpreter returns to top level.</p>
+
+    <h2>Functions</h2>
+    
+    <p>There are four kinds of functions: exprs, fexprs, subrs, and fsubrs.</p>
+    <p>Exprs are ordinary user functions, represented by a list who car is
+      lambda.  When an expr is called, its arguments are evaluated and
+      placed in TVS as ARGA, ARGB, ... They are then bound
+      to the symbols in the lambda-expression's argument list.</p>
+    <p>Instead of a list of symbols, the definition of a fexpr has a
+      single argument symbol.  It is bound to a list of the
+      unevaluated arguments.  Fexprs allow new control structures to
+      be implemented, for example the usual Lisp "if" could be
+      implemented by a fexpr that creates and evaluates a
+      corresponding "cond".</p>
+    <p>Subrs are functions implemented in assembler within the interpreter.
+      Like exprs, their arguments are evaluated and placed in ARGA, ARGB, ...
+      where they can be accessed by the assembler code implementing the
+      function.  Most of the built-in functions are subrs.</p>
+    <p>Fsubrs are assembler functions that are called with a list of
+      their unevaluated arguments in WSA.  They are used to implement
+      the built-in control structures such as "cond" and "loop".</p>
+      
+      
+    <h2>Eval</h2>
+
+    <p>The function EVALU is called by the read-eval-print loop and
+      by the lisp function "eval".  It takes the expression in ARG,
+      evaluates it, and places the result in ARG.<p>
+      
+    <p>Numbers, NIL, and [f]expr objects evaluate to themselves.  Symbols
+      evaluate to their values.  The interesting case is lists, that is,
+      function calls.<p>
+
+    <p>The first step in calling a function is to push a new stack
+      frame by calling STACK, which provides a fresh set of workspace
+      variables and space for the function's arguments.  STACK stores
+      its caller's return address in the stack frame, so that when the
+      frame is popped EVALU will return.</p>
+
+    <p>Next the cdr of the expression - the list of arguments - is
+      stored in the variable WSA.  Then the car of the expression is
+      examined to see if it is some kind of function - a subr or
+      fsubr, or a list whose car is LAMBDA (an expr or fexpr).
+      Otherwise it is evaluated up to twice to try and get a function.
+      The common case is that it's a symbol whose value is a function,
+      but evaluating twice allows for a function that returns the name
+      of a function.  If during this process it gets an integer or
+      NIL, or if it does not get a function after two evaluations, an
+      error is signalled.</p>
+
+    <p>At this point, the function - [f]subr or lambda expression -
+      is in ARG.</p>
+
+    <p>In the case of a subr, the arguments in the list in WSA are now
+      evaluated and their values placed in the argument array ARGA,
+      ARGB...  If there are not enough an error is signalled (no error
+      is signalled it there are too many).  The interpreter then jumps
+      to the subr which performs the function and leaves the result in
+      ARG.</p>
+
+    <p>In the case of an fsubr, the interpreter just jumps to the
+      fsubr.  The fsubr is responsible for extracting the arguments
+      from WSA and evaluating them if appropriate.  It leaves its
+      result in ARG.</p>
+
+    <p>Otherwise we have a lambda expression in ARG, and the list of
+      (unevaluated) arguments in WSA.  The cadr of the expression (the
+      formal argument list) in placed in WSB, and the cddr (the
+      function body) in WSC.  Various syntax errors may be signalled
+      at this stage, for example if WSB is neither a symbol nor a
+      list.</p>
+
+    <p>If WSB contains a symbol, we have a fexpr.  The function BIND
+      is called to bind the symbol to the argument list in WSA, and
+      push the symbol and its old value onto the stack.  The function
+      is then executed by sequentially evaluating the members of the
+      body list.  The value of the last one is left in ARG as the
+      result of the function.</p>
+      
+    <p>The last and most complicated possiblity is that WSB contains a
+      list and the function is an expr.  As with a subr, the arguments
+      are evaluated and their values placed in the argument array.
+      The interpreter now moves in parallel through the formal
+      argument list in WSB and the argument array.  Each formal
+      argument must be either a symbol or a cons representing an
+      argument with a default value.  If it's a symbol BIND is called
+      to bind it to the argument; if there are not enough arguments an
+      error is signalled.  Otherwise it must be a cons, and if there
+      are enough arguments the car of the cons is bound
+      to the argument.  If there are not enough arguments, the car
+      is bound to the cdr (the default value).  Again various syntax
+      errors may be signalled along the way.  Once the arguments
+      are bound the function is executed by evaluating the body expressions
+      as in the case of a fexpr.</p>
+    
+    <p>Whichever kind of function was called, it ends by jumping to POP
+      which pops the stack frame and returns from EVALU.</p>
+      
+    <h2>Garbage collection</h2>
+
+    <p>The garbage collector compacts the heap in place, without
+      changing the order of the objects.  It has four phases: marking
+      the active objects, calculating the displacements, adjusting the
+      pointers, and moving the objects.</p>
+
+    <h3>Marking the active objects</h3>
+    <p>In what follows I will write as if all objects were conses.  For symbols,
+      read "value" for "car" and "plist" for cdr.  The basic marking algorithm is
+      simple: recurse on the car and loop on the cdr, setting bits in the type
+      field to indicate which have been followed:</p>
+    
+    <pre>
+      <code>
+	mark(object):
+	 start:
+	  if(!(object->type & car_mark))
+            object->type |= car_mark
+            mark(car)
+          if(!(object->type & cdr_mark))
+            object->type |= cdr_mark
+            object = cdr(object)
+            goto start
+      </code>
+    </pre>
+
+    <p>But because of the limited stack space available, recursion stops once
+    a fixed depth (32) has been reached, and looping continues on the car:</p>
+
+    <pre>
+      <code>
+	...
+	if(!(object->type & car_mark))
+          object->type |= car_mark
+	  if(depth &lt; MAX_DEPTH)
+            mark(car, depth+1)
+          else
+	    object = car(object)
+	    goto start
+         ...
+      </code>
+    </pre>
+
+    <p>Marking starts from the register and arguments in TVS, from all
+      the pointers on the stack, and from all symbols on the heap
+      unless their value is UNDEFINED and their property list NIL.
+      Because of the limited stack size, there may be objects whose
+      car has been followed but not their cdr.  Repeated passes are
+      made over the heap starting from these half-marked objects,
+      until no further unmarked objects are encountered.  At this
+      point, all accessible objects have been marked.</p>
+
+    <h3>Calculating the displacements</h3>
+
+    <p>The heap will now consist of a mixture of marked and unmarked
+      objects.  There will be a run of marked objects at the start of
+      the heap (since UNDEFINED is certainly marked, as its property
+      list is UNDEFINED rather than NIL), followed - assuming there is
+      some garbage to be collected - by a run of unmarked objects,
+      then another run of marked objects, and so on.  Each marked
+      object will be moved down in the heap by an amount (its
+      "displacement") equal to the total size of the unmarked objects
+      below it. A consequence of this is that all the marked objects
+      in a run will have the same displacement.</p>
+
+    <p>The garbage collector now goes through the heap in order, keeping
+      track of the current displacement.  When it reaches the end of
+      a run of marked objects, it records their displacement in the
+      body of the immediately following unmarked object (its type and
+      size fields are preserved so that the heap can still be traversed).</p>
+
+    <p>This would be sufficient to determine the displacement of any
+      marked object: you could proceed through the heap from it and find
+      the displacement in the first unmarked object you come to.  But
+      this is very slow if runs of marked object are long, as they
+      will be as more permanent objects are compacted together.  To
+      mitigate this, a table is kept recording the displacement at the
+      end of each page.  While calculating the displacements, when a
+      marked object includes the end of a page, its displacement is
+      stored in the table.</p>
+
+    <p>The end of the first run of marked objects, the start of
+      the last one, and the displacement of that final run,
+      are also recorded.</p>
+    
+    <h3>Adjusting the pointers</h3>
+
+    <p>All the pointers in TVS, on the stack, and in marked objects on
+      the heap are now adjusted by subtracting the displacement of the
+      object pointed to.  An object's displacement is found by
+      proceeding through the heap from it until either an unmarked
+      object is encountered (in which case it will contain the
+      displacement), or a page boundary is reached (in which case the
+      table entry for the page just completed will contain the
+      displacement).  As an optimization, the object's address is
+      first tested to see if it is in the first run (in which case its
+      displacement will be zero) or in the last run (in which case is
+      will be the final displacement).
+
+    <h3>Moving the objects</h3>
+
+    <p>Another pass is made through the heap, again keeping track of
+      the current displacement.  Each marked object is moved down by
+      the current displacement.  Finally the variable AREVAL is set to
+      the new top of the heap and the mark bits are cleared.</p>
+
+    <h2>Saved images</h2>
+
+    <p>A saved image is just a copy of the heap.  The position of the
+      heap is not fixed; it depends, for example, on what file system
+      is installed.  The image therefore contains addresses specific
+      to the system that was running when it was saved, and these must
+      be adjusted to match the position of the heap when the image is
+      loaded. The addresses in the heap are (a) the addresses of other
+      objects in the heap, and (b) the addresses of subrs and fsubrs.
+      As mentioned above, subrs and fsubrs indirect through vectors
+      stored immediately below the heap.  This means that addresses in
+      the heap depend only on the location of the heap, not on the
+      addresses of functions in the interpreter itself.</p>
+
+    <p>Since the first object in the heap is the symbol UNDEFINED, and
+      the value of UNDEFINED is itself, it is easy to determine the
+      address from which an image was saved by examining the value
+      field of the first object.  Comparing it with where it will be
+      in the system loading the image gives the offset that must
+      applied to all addresses in the image.</p>
+
+    <p>The assembler code from which the Lisp ROM is built contains a
+      minimal image with only the essential symbols such as NIL and
+      LAMBDA, and the built-in subrs and fsubrs.  The ROM is build by
+      running this system, loading in a file containing the
+      definitions of defun and a few other functions, and saving an
+      image.  That image is then written to the ROM in place of the
+      assembler-coded image.</p>
+      
+    <h2>The Tube</h2>
+
+    <p>If a second 6502 processor is connected via the Tube, the
+      operating system copies the ROM to the same address (0x8000) on
+      the second processor and runs it there.  The interpreter
+      detects this and takes advantage of the extra memory available
+      by copying itself to a higher address (0xd700).  It then needs
+      to adjust all the addresses in the code, which it does by means
+      of a table stored in the ROM which lists all the addresses that
+      need changing.</p>
+  </body>
+</html>
