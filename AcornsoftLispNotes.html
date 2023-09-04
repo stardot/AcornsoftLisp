@@ -67,14 +67,14 @@
     </table>
       
     <p>Symbols (referred to in the code as "character atoms") contain
-      a pointer to their value and property list.  They are variable
-      length, with the name of the symbol at the end.  The length
-      field gives the length of the whole object, six plus the length
-      of the name. There are no undefined symbols, but their initial
-      value is a symbol named UNDEFINED.  The property lists of
-      symbols are in fact a-lists, not p-lists.  Symbols are interned
-      by traversing the entire heap looking for an existing symbol
-      with the right name.</p>
+      a pointer to their value and property list.  They are
+      variable-length, with the name of the symbol at the end.  The
+      length field gives the length of the whole object, six plus the
+      length of the name. There are no undefined symbols, but their
+      initial value is a symbol named UNDEFINED.  The property lists
+      of symbols are in fact a-lists, not p-lists.  Symbols are
+      interned by traversing the entire heap looking for an existing
+      symbol with the right name.</p>
 
     <p>Numbers are 16 bit integers.  The length field seems unnecessary as
       it is always four, but the code appears to envisage the
@@ -345,7 +345,7 @@
       result of the function.</p>
       
     <p>The last and most complicated possiblity is that WSB contains a
-      list and the function is an expr.  As with a subr, the arguments
+      list and so the function is an expr.  As with a subr, the arguments
       are evaluated and their values placed in the argument array.
       The interpreter now moves in parallel through the formal
       argument list in WSB and the argument array.  Each formal
@@ -438,7 +438,7 @@
     <p>This would be sufficient to determine the displacement of any
       marked object: you could proceed through the heap from it and find
       the displacement in the first unmarked object you come to.  But
-      this is very slow if runs of marked object are long, as they
+      this is very slow if runs of marked objects are long, as they
       will be as more permanent objects are compacted together.  To
       mitigate this, a table is kept recording the displacement at the
       end of each page.  While calculating the displacements, when a
@@ -493,7 +493,7 @@
 
     <p>The assembler code from which the Lisp ROM is built contains a
       minimal image with only the essential symbols such as NIL and
-      LAMBDA, and the built-in subrs and fsubrs.  The ROM is build by
+      LAMBDA, and the built-in subrs and fsubrs.  The ROM is built by
       running this system, loading in a file containing the
       definitions of defun and a few other functions, and saving an
       image.  That image is then written to the ROM in place of the
