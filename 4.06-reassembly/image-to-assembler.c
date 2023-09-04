@@ -9,13 +9,13 @@
  *
  * The second argment is the address where it will be included in
  * the assembler code, normally A600.  This is needed because the
- * program prodduces readable labels rather than hex addresses, and
+ * program produces readable labels rather than hex addresses, and
  * they need to be adjusted according to where they are assembled.
  *
- * The third argument specifies an addres for the image to be relocated
- * to before converting.  This makes no functional difference, as the
- * image is relocated anyway in the running Lisp.  But it allows us
- * to produce code matching the original source.
+ * The optional third argument specifies an address for the image to
+ * be relocated to before converting.  This makes no functional
+ * difference, as the image is relocated anyway in the running Lisp.
+ * But it allows us to produce code matching the original source.
  *
  * To generate an exact copy of the image in the Lisp 4.06 ROM, use
  *   image-to-assembler 2600 a600 < the-rom > image.asm
