@@ -207,8 +207,9 @@
       changes do not take effect until the interpreter returns to its
       top level, so that the top of the stack can be changed.)</p>
     <p>The stack contains saved variables from TVS, return addresses,
-      and saved variables bindings (shallow binding).  A stack
-      frame looks like this (higher addresses at the top):</p>
+      and variable bindings to be undone when a function returns
+      (shallow binding).  A stack frame looks like this (higher
+      addresses at the top):</p>
 
     <table border="1px">
       <tr><td>ARETOP</td></tr>
