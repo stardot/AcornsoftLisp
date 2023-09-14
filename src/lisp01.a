@@ -132,7 +132,7 @@ LOOP3
     sta RELBS+1
     cmp IMBOT
     bne LOOP3
-    lda #0                                         ; Prevent warm start offer
+    lda #COLDST                                    ; Prevent warm start offer
     sta STATYP
 
     ; Do a *GO WRMCHK (via HILISP)

@@ -6,7 +6,7 @@
     ; ******************************
     
 WRMCHK
-    HIWARM = WRMCHK+HILISP-LISVAL ; XXX moved hefre to after WRMCHK defined
+    HIWARM = WRMCHK+HILISP-LISVAL ; XXX moved here to after WRMCHK defined
     lda STATYP
     cmp #WARMST
     bne NOTWRM
