@@ -1,8 +1,8 @@
 /*
- * Build the relocation table for running Acorsoft Lisp at a high address (usually
- * D700) in the tube.
+ * Build the relocation table for running Acornsoft Lisp at a high address
+ * (usually D700) in the tube.
  *
- * First, assemble teo versions, one at the usual location (low.bin) and
+ * First, assemble two versions, one at the usual location (low.bin) and
  * the other at a different location (high.bin).  This program will then
  * find the bytes that have changed and make a table either in binary ready
  * to be inserted at the appropriate location in the ROM, or in text
