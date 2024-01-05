@@ -45,10 +45,10 @@ DODO
 POSV
     ldy #2                                         ; RETREIVE RESULT
     ldx XPR
-    lda GCNO,x
+    lda 0,x
     sta (POINT),y                                  ; Put in new cell
     iny
-    lda GCNO+1,x
+    lda 1,x
     sta (POINT),y
     jmp AMADE                                      ; return POINT
 
