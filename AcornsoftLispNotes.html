@@ -295,7 +295,7 @@
       by the lisp function "eval".  It takes the expression in ARG,
       evaluates it, and places the result in ARG.<p>
       
-    <p>Numbers, NIL, and [f]expr objects evaluate to themselves.  Symbols
+    <p>Numbers, NIL, and [f]subr objects evaluate to themselves.  Symbols
       evaluate to their values.  The interesting case is lists, that is,
       function calls.<p>
 
@@ -383,7 +383,7 @@
 	 start:
 	  if(!(object->type & car_mark))
             object->type |= car_mark
-            mark(car)
+            mark(car(object))
           if(!(object->type & cdr_mark))
             object->type |= cdr_mark
             object = cdr(object)
@@ -400,7 +400,7 @@
 	if(!(object->type & car_mark))
           object->type |= car_mark
 	  if(depth &lt; MAX_DEPTH)
-            mark(car, depth+1)
+            mark(car(object), depth+1)
           else
 	    object = car(object)
 	    goto start
@@ -408,7 +408,7 @@
       </code>
     </pre>
 
-    <p>Marking starts from the register and arguments in TVS, from all
+    <p>Marking starts from the registers and arguments in TVS, from all
       the pointers on the stack, and from all symbols on the heap
       unless their value is UNDEFINED and their property list NIL.
       Because of the limited stack size, there may be objects whose
