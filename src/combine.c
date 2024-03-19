@@ -105,7 +105,7 @@ int main(int argc, char **argv)
     /* read the relocation table and sanity check */
     
     rtable = fopen(argv[3], "r");
-    if(!image)
+    if(!rtable)
     {
 	perror(argv[3]);
 	return 1;
