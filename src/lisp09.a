@@ -5,6 +5,8 @@
     ; ******************************
 
 				; **** MODE
+				; XXX apply changes from v5.01 here and in lisp03.a to
+				; XXX handle shadow modes (use bit 6 instead of 7 for flag)
 MODE
     jsr ALLNUM
     jsr ALNUM
