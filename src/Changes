@@ -50,3 +50,13 @@ Bug in BAND/BOR with no arguments
  Due to a test at the wrong end of the loop, BAND and BOR with no
  arguments and-ed or or-ed together all the words in zero page,
  usually resulting in 0 and -1 instead of -1 and 0 respectively.
+
+====================
+
+Changes in version 4.08
+
+Inefficient check for escape
+ KBCHK, which is called by every EVALU, did an OSWORD 5 to read the
+ escape flag at 00FF in the i/o processor.  This is unnecessary as the
+ value is copied to tube memory.  Checking directly speeds things up
+ especially in the tube.

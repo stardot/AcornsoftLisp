@@ -97,6 +97,7 @@ LISP
 	POPPY	=	$8D
 	TERMCH	=	$8E
 	ACIN	=	$8F
+;       XXX Lisp should not these locations beyond $8F, used by Econet
 	ARGINF	=	$90	; For OSARGS
 	OLDLEV	=	$97
 	CLISTR	=	$F2
@@ -115,7 +116,8 @@ LISP
 	REM40	=	$0407
 	AUX40	=	$040c
 	TEMP40	=	$0411
-	IODCB	=	$0416
+;	IODCB no longer used, see note at KBCHK
+;	IODCB	=	$0416
 	PWORD	=	$041b
 	GCTIME	=	$0420
 	TIMEW	=	$0425

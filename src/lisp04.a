@@ -32,13 +32,11 @@ EVALU
     !text "Escape"
     !byte 0
 
+    ; check for escape
+    ; (previously used OSWORD 5, but this is not necessary)
 KBCHK
-    ldx #<(IODCB)
-    ldy #>(IODCB)
-    lda #osword_read_io_memory
-    jsr OSWORD                                     ; Read byte of I/O processor memory
     lda #$80
-    and IODCB+4
+    and KBD
     rts
 
 EVAL1

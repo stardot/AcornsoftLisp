@@ -22,6 +22,9 @@
     ;; Corrected "Function expected" error number 21/8/23
     ;; Bugs in BOR/BAND with no arguments fixed 22/8/23
 
+    ;; Version 4.08
+    ;; Simplify escape checking 20/11/24
+    
     ;; *******************************
 
     !src "lisp00.a"

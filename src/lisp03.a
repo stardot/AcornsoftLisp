@@ -454,13 +454,14 @@ ZLP
     sta TVSEXT
     jsr GCTIMZ                                     ; Zero GC time
     jsr STCLK                                      ; Zero time
-    lda #<KBD                                      ; Set up Escape check
-    sta IODCB
-    lda #>KBD
-    sta IODCB+1
-    lda #0
-    sta IODCB+2
-    sta IODCB+3
+    ; no longer needed, see note at KBCHK
+    ;    lda #<KBD                                      ; Set up Escape check
+    ;    sta IODCB
+    ;    lda #>KBD
+    ;    sta IODCB+1
+    ;    lda #0
+    ;    sta IODCB+2
+    ;    sta IODCB+3
     jmp SUPER                                      ; Enter supervisor
 
 
